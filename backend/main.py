@@ -1,17 +1,36 @@
 """
 Blur That Face — FastAPI backend
 
-Flow:
-  POST /api/upload        → save video, extract frames with FFmpeg → status: frames_ready
-  GET  /api/jobs/{id}     → poll job metadata (status, frame_count, fps, …)
-  POST /api/jobs/{id}/detect  → run OpenCV face detection on every frame (next step)
-  POST /api/jobs/{id}/render  → produce blurred output video (next step)
-  GET  /api/jobs/{id}/output  → stream finished video
+Upload flow
+-----------
+  POST /api/upload
+    → save video to disk
+    → immediately kick off _run_detection as a BackgroundTask
+    → return { job_id } to the client
+
+Detection background task
+--------------------------
+  _run_detection(job_id)
+    → sets status = "detecting"
+    → calls detector.run_detection(), which reads the video with OpenCV
+      and returns per-frame face bounding boxes
+    → assigns a stable integer face_id to every unique face track (naïve
+      nearest-neighbour for now; a proper tracker comes in the next step)
+    → sets status = "detected", writes face summary into meta.json
+
+Client polling
+--------------
+  GET /api/jobs/{id}  →  meta.json as JSON
+    status values: uploaded | detecting | detected | rendering | done | error
+
+Later steps (stubs for now)
+----------------------------
+  POST /api/jobs/{id}/render  →  produce blurred output video
+  GET  /api/jobs/{id}/output  →  stream finished video
 """
 
 import json
 import os
-import subprocess
 import uuid
 from pathlib import Path
 
@@ -20,8 +39,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
+from detector import run_detection
+
 # ---------------------------------------------------------------------------
-# Config — paths can be overridden with env vars (handy in Docker)
+# Config
 # ---------------------------------------------------------------------------
 
 UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR", "/tmp/btf/uploads"))
@@ -29,17 +50,12 @@ JOBS_DIR   = Path(os.getenv("JOBS_DIR",   "/tmp/btf/jobs"))
 
 ALLOWED_EXTENSIONS = {".mp4", ".webm", ".mov"}
 
-# FFmpeg outputs one JPEG per frame at this quality (2 = near-lossless, 31 = worst).
-# 3-5 is a good balance between disk use and detection accuracy.
-FRAME_QUALITY = int(os.getenv("FRAME_QUALITY", "4"))
-
 # ---------------------------------------------------------------------------
-# App
+# App + CORS
 # ---------------------------------------------------------------------------
 
 app = FastAPI(title="Blur That Face API")
 
-# Allow the Vite dev server (port 5173) to call us without CORS errors.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -48,11 +64,11 @@ app.add_middleware(
 )
 
 # ---------------------------------------------------------------------------
-# Tiny meta-data helpers
+# Meta-data helpers
 #
-# Each job lives in  JOBS_DIR/<job_id>/
-#   meta.json   — all job state
-#   frames/     — extracted JPEG frames (frame_000001.jpg, …)
+# Every job lives in JOBS_DIR/<job_id>/
+#   meta.json        — all mutable job state (status, face summary, …)
+#   detections.json  — full per-frame output from the detector
 # ---------------------------------------------------------------------------
 
 def _job_dir(job_id: str) -> Path:
@@ -72,85 +88,129 @@ def _write_meta(job_id: str, data: dict) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Frame extraction
+# Face-ID assignment
 #
-# We call FFmpeg as a subprocess rather than using a Python binding so that
-# the Docker image only needs the ffmpeg system package — no heavy Python
-# wrappers required.
-#
-# Command breakdown:
-#   ffmpeg -i <video>          — input file
-#   -q:v <quality>             — JPEG quality (lower = better)
-#   frames/frame_%06d.jpg      — zero-padded output filenames
-#
-# We also run a quick `ffprobe` first to learn the video's FPS and total
-# frame count so the frontend can show a progress bar.
+# MediaPipe gives us raw per-frame bounding boxes but no cross-frame IDs.
+# This naïve pass assigns a stable integer face_id by matching each box in
+# frame N to the nearest box seen in frame N-1 (IoU centre distance).
+# A proper tracker (SORT/DeepSORT) replaces this in a later step.
 # ---------------------------------------------------------------------------
 
-def _probe_video(video_path: Path) -> tuple[float, int]:
-    """Return (fps, frame_count) for *video_path* using ffprobe."""
-    cmd = [
-        "ffprobe", "-v", "error",
-        "-select_streams", "v:0",
-        "-count_packets",
-        "-show_entries", "stream=r_frame_rate,nb_read_packets",
-        "-of", "json",
-        str(video_path),
-    ]
-    result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-    info = json.loads(result.stdout)
-    stream = info["streams"][0]
-
-    # r_frame_rate is a fraction string like "30000/1001" or "25/1"
-    num, den = stream["r_frame_rate"].split("/")
-    fps = round(float(num) / float(den), 3)
-
-    frame_count = int(stream.get("nb_read_packets", 0))
-    return fps, frame_count
+def _iou_center_dist(a: list, b: list) -> float:
+    """Euclidean distance between centres of two [x, y, w, h] boxes."""
+    ax, ay = a[0] + a[2] / 2, a[1] + a[3] / 2
+    bx, by = b[0] + b[2] / 2, b[1] + b[3] / 2
+    return ((ax - bx) ** 2 + (ay - by) ** 2) ** 0.5
 
 
-def _extract_frames(job_id: str) -> None:
+def _assign_face_ids(frames: list[dict], max_dist: float = 80.0) -> tuple[list[dict], int]:
     """
-    Background task: extract frames from the uploaded video.
+    Annotate every face dict in *frames* with a stable ``face_id`` integer.
+    Returns (annotated_frames, total_unique_faces).
+    """
+    next_id = 0
+    prev_faces: list[dict] = []   # faces seen in the previous frame
 
-    Sets job status to 'extracting' while running, then 'frames_ready'
-    on success or 'error' on failure.
+    for frame in frames:
+        current: list[dict] = frame["faces"]
+        matched_ids: set[int] = set()
+
+        for face in current:
+            best_id   = None
+            best_dist = max_dist
+
+            for prev in prev_faces:
+                d = _iou_center_dist(face["bbox"], prev["bbox"])
+                if d < best_dist and prev["face_id"] not in matched_ids:
+                    best_dist = d
+                    best_id   = prev["face_id"]
+
+            if best_id is None:
+                best_id = next_id
+                next_id += 1
+
+            face["face_id"] = best_id
+            matched_ids.add(best_id)
+
+        prev_faces = current
+
+    return frames, next_id
+
+
+# ---------------------------------------------------------------------------
+# Detection background task
+# ---------------------------------------------------------------------------
+
+def _run_detection(job_id: str) -> None:
+    """
+    Called as a FastAPI BackgroundTask after a successful upload.
+
+    1. Marks job as 'detecting'.
+    2. Runs the MediaPipe detector on the saved video.
+    3. Assigns stable face_ids across frames.
+    4. Writes a compact face summary into meta.json and the full results
+       into detections.json.
+    5. Marks job as 'detected' (or 'error' on failure).
     """
     meta = _read_meta(job_id)
-    video_path = Path(meta["video_path"])
-    frames_dir = _job_dir(job_id) / "frames"
-    frames_dir.mkdir(parents=True, exist_ok=True)
-
-    meta["status"] = "extracting"
+    meta["status"] = "detecting"
     _write_meta(job_id, meta)
 
     try:
-        fps, frame_count = _probe_video(video_path)
+        video_path     = Path(meta["video_path"])
+        detections_out = _job_dir(job_id) / "detections.json"
 
-        cmd = [
-            "ffmpeg", "-y",           # -y: overwrite without prompting
-            "-i", str(video_path),
-            "-q:v", str(FRAME_QUALITY),
-            str(frames_dir / "frame_%06d.jpg"),
-        ]
-        # check=True raises CalledProcessError if ffmpeg exits non-zero
-        subprocess.run(cmd, capture_output=True, check=True)
+        # Provide a progress callback that updates frame_progress in meta
+        # every 30 frames so the frontend can show a rough % bar.
+        def _progress(frame_idx: int, total: int) -> None:
+            if frame_idx % 30 == 0:
+                m = _read_meta(job_id)
+                m["frame_progress"] = {"current": frame_idx, "total": total}
+                _write_meta(job_id, m)
 
-        # Count how many frames were actually written (ground truth)
-        actual_frames = len(list(frames_dir.glob("frame_*.jpg")))
+        results = run_detection(
+            video_path=video_path,
+            output_path=detections_out,
+            progress_cb=_progress,
+        )
+
+        # Assign stable face_ids and build a compact per-face summary that
+        # the frontend can use to render clickable face thumbnails.
+        annotated_frames, num_faces = _assign_face_ids(results["frames"])
+
+        # face_summary: { face_id -> { first_frame, last_frame, bbox_sample } }
+        face_summary: dict[int, dict] = {}
+        for frame in annotated_frames:
+            for face in frame["faces"]:
+                fid = face["face_id"]
+                if fid not in face_summary:
+                    face_summary[fid] = {
+                        "face_id": fid,
+                        "first_frame": frame["frame"],
+                        "last_frame":  frame["frame"],
+                        "bbox_sample": face["bbox"],
+                    }
+                else:
+                    face_summary[fid]["last_frame"] = frame["frame"]
 
         meta.update({
-            "status": "frames_ready",
-            "fps": fps,
-            "frame_count": actual_frames,
-            "frames_dir": str(frames_dir),
+            "status":       "detected",
+            "fps":          results["video"]["fps"],
+            "total_frames": results["video"]["total_frames"],
+            "width":        results["video"]["width"],
+            "height":       results["video"]["height"],
+            "num_faces":    num_faces,
+            "faces":        list(face_summary.values()),
+            "detections_path": str(detections_out),
+            "frame_progress": None,
         })
         _write_meta(job_id, meta)
 
-    except subprocess.CalledProcessError as exc:
+    except Exception as exc:
         meta["status"] = "error"
-        meta["error"] = exc.stderr.decode(errors="replace")
+        meta["error"]  = str(exc)
         _write_meta(job_id, meta)
+        raise
 
 
 # ---------------------------------------------------------------------------
@@ -164,14 +224,15 @@ def health():
 
 # --- Upload -----------------------------------------------------------------
 #
-# 1. Validate extension.
-# 2. Stream the file to disk under UPLOAD_DIR/<job_id>.<ext>.
-# 3. Write initial metadata so the job is immediately poll-able.
-# 4. Kick off _extract_frames as a FastAPI BackgroundTask — the HTTP
-#    response returns instantly with the new job_id while extraction runs.
+# Saves the video and immediately registers a background detection task.
+# The HTTP response returns as soon as the file is written — the client
+# polls GET /api/jobs/{id} to follow progress.
 
 @app.post("/api/upload", status_code=201)
-async def upload(file: UploadFile = File(...), background_tasks: BackgroundTasks = BackgroundTasks()):
+async def upload(
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
+):
     ext = Path(file.filename or "").suffix.lower()
     if ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(status_code=415, detail=f"Unsupported format: {ext}")
@@ -182,14 +243,14 @@ async def upload(file: UploadFile = File(...), background_tasks: BackgroundTasks
     video_path.write_bytes(await file.read())
 
     _write_meta(job_id, {
-        "id": job_id,
-        "filename": file.filename,
+        "id":         job_id,
+        "filename":   file.filename,
         "video_path": str(video_path),
-        "status": "uploaded",
-        "faces": [],
+        "status":     "uploaded",
+        "faces":      [],
     })
 
-    background_tasks.add_task(_extract_frames, job_id)
+    background_tasks.add_task(_run_detection, job_id)
     return {"job_id": job_id}
 
 
@@ -200,28 +261,10 @@ def get_job(job_id: str):
     return _read_meta(job_id)
 
 
-# --- Face detection (stub — implementation in next step) -------------------
-
-@app.post("/api/jobs/{job_id}/detect", status_code=202)
-def detect_faces(job_id: str):
-    meta = _read_meta(job_id)
-    if meta["status"] != "frames_ready":
-        raise HTTPException(
-            status_code=409,
-            detail=f"Detection requires status 'frames_ready', got '{meta['status']}'"
-        )
-
-    meta["status"] = "detecting"
-    _write_meta(job_id, meta)
-
-    # TODO: run OpenCV face detection over frames_dir
-    return {"job_id": job_id, "status": "detecting"}
-
-
-# --- Render blurred video (stub — implementation in next step) -------------
+# --- Render blurred video (stub) -------------------------------------------
 
 class RenderRequest(BaseModel):
-    face_id: str
+    face_id: int
 
 
 @app.post("/api/jobs/{job_id}/render", status_code=202)
@@ -230,10 +273,10 @@ def render(job_id: str, body: RenderRequest):
     if meta["status"] != "detected":
         raise HTTPException(
             status_code=409,
-            detail=f"Render requires status 'detected', got '{meta['status']}'"
+            detail=f"Render requires status 'detected', got '{meta['status']}'",
         )
 
-    meta["status"] = "rendering"
+    meta["status"]           = "rendering"
     meta["selected_face_id"] = body.face_id
     _write_meta(job_id, meta)
 
