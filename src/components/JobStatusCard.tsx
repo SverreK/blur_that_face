@@ -1,6 +1,6 @@
 import type { JobStatus, JobMeta } from "../types";
 import { STATUS_LABEL } from "../types";
-import ProgressBar from "./Progressbar";
+import ProgressBar from "./ProgressBar";
 
 interface JobStatusCardProps {
   status: JobStatus;

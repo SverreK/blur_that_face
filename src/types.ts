@@ -14,6 +14,7 @@ export interface JobMeta {
   status: JobStatus;
   error?: string;
   num_faces?: number;
+  fps?: number;
   total_frames?: number;
   frame_progress?: { current: number; total: number } | null;
   faces?: {

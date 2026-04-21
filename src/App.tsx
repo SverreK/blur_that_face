@@ -17,11 +17,18 @@ export default function App() {
       <h1 className="text-4xl font-bold tracking-tight">Blur That Face</h1>
 
       {/* Drop zone */}
-      <UploadDropZone
-        onFileSelected={uploadFile}
-        disabled={isProcessing}
-        disabledLabel={STATUS_LABEL[status]}
-      />
+      {!job ? (
+        <UploadDropZone
+          onFileSelected={uploadFile}
+          disabled={isProcessing}
+          disabledLabel={STATUS_LABEL[status]}
+        />
+      ) : (
+        <VideoPlayer
+          videoUrl={`/api/jobs/${job.id}/video`}
+          fps={job.fps ?? 30}
+        />
+      )}
 
       {/* Status card */}
       {status !== "idle" && job && (

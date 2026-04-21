@@ -29,6 +29,7 @@ Later steps (stubs for now)
   GET  /api/jobs/{id}/output  →  stream finished video
 """
 
+import cv2
 import json
 import os
 import uuid
@@ -217,6 +218,15 @@ def _run_detection(job_id: str) -> None:
 # Routes
 # ---------------------------------------------------------------------------
 
+_MEDIA_TYPES = {".mp4": "video/mp4", ".webm": "video/webm", ".mov": "video/quicktime"}
+
+@app.get("/api/jobs/{job_id}/video")
+def get_video(job_id: str):
+    meta = _read_meta(job_id)
+    video_path = Path(meta["video_path"])
+    media_type = _MEDIA_TYPES.get(video_path.suffix.lower(), "video/mp4")
+    return FileResponse(video_path, media_type=media_type)
+
 @app.get("/api/health")
 def health():
     return {"status": "ok"}
@@ -242,11 +252,22 @@ async def upload(
     video_path = UPLOAD_DIR / f"{job_id}{ext}"
     video_path.write_bytes(await file.read())
 
+    # Probe FPS and dimensions immediately so the frontend has correct values
+    # before detection starts, rather than falling back to a hardcoded default.
+    cap = cv2.VideoCapture(str(video_path))
+    fps    = cap.get(cv2.CAP_PROP_FPS) or 30.0
+    width  = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    cap.release()
+
     _write_meta(job_id, {
         "id":         job_id,
         "filename":   file.filename,
         "video_path": str(video_path),
         "status":     "uploaded",
+        "fps":        fps,
+        "width":      width,
+        "height":     height,
         "faces":      [],
     })
 
