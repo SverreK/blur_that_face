@@ -35,3 +35,18 @@ export const STATUS_LABEL: Record<JobStatus, string> = {
   done: "Done",
   error: "Error",
 };
+
+export interface FaceDetection {
+  face_id: number;
+  bbox: number[]; // [x, y, width, height]
+  confidence: number;
+}
+
+export interface FrameDetection {
+  frame: number;
+  faces: FaceDetection[];
+}
+
+export interface DetectionData {
+  frames: FrameDetection[];
+}

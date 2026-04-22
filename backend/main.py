@@ -175,9 +175,11 @@ def _run_detection(job_id: str) -> None:
             progress_cb=_progress,
         )
 
-        # Assign stable face_ids and build a compact per-face summary that
-        # the frontend can use to render clickable face thumbnails.
+        # Assign stable face_ids across frames. _assign_face_ids mutates
+        # results["frames"] in-place, so we rewrite detections.json afterwards
+        # so the /detections endpoint returns face_id-annotated data.
         annotated_frames, num_faces = _assign_face_ids(results["frames"])
+        detections_out.write_text(json.dumps(results, indent=2))
 
         # face_summary: { face_id -> { first_frame, last_frame, bbox_sample } }
         face_summary: dict[int, dict] = {}
@@ -226,6 +228,26 @@ def get_video(job_id: str):
     video_path = Path(meta["video_path"])
     media_type = _MEDIA_TYPES.get(video_path.suffix.lower(), "video/mp4")
     return FileResponse(video_path, media_type=media_type)
+
+@app.get("/api/jobs/{job_id}/detections")
+async def get_detections(job_id: str):
+    meta = _read_meta(job_id)
+    detections_path = meta.get("detections_path")
+    
+    if not detections_path or not Path(detections_path).exists():
+        raise HTTPException(status_code=404, detail="Detections not ready")
+    
+    with open(detections_path) as f:
+        return json.load(f)
+
+@app.get("/api/jobs/{job_id}/detections")
+def get_detections(job_id: str):
+    meta = _read_meta(job_id)
+    if meta["status"] not in ("detected", "rendering", "done"):
+        raise HTTPException(status_code=409, detail="Detections not ready yet")
+    detections_path = Path(meta["detections_path"])
+    return FileResponse(detections_path, media_type="application/json")
+
 
 @app.get("/api/health")
 def health():

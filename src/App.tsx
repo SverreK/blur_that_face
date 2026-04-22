@@ -1,3 +1,4 @@
+import { useState } from "react";
 import UploadDropZone from "./components/UploadDropZone";
 import JobStatusCard from "./components/JobStatusCard";
 import { STATUS_LABEL } from "./types";
@@ -5,8 +6,14 @@ import { useJobPolling } from "./hooks/useJobPolling";
 import VideoPlayer from "./components/VideoPlayer";
 
 export default function App() {
-  const { status, job, isProcessing, progressPercentage, uploadFile } =
-    useJobPolling();
+  const {
+    status,
+    job,
+    detections,
+    isProcessing,
+    progressPercentage,
+    uploadFile,
+  } = useJobPolling();
 
   // -------------------------------------------------------------------------
   // Render
@@ -27,6 +34,7 @@ export default function App() {
         <VideoPlayer
           videoUrl={`/api/jobs/${job.id}/video`}
           fps={job.fps ?? 30}
+          detections={detections}
         />
       )}
 
