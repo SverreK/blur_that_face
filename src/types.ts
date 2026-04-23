@@ -50,3 +50,10 @@ export interface FrameDetection {
 export interface DetectionData {
   frames: FrameDetection[];
 }
+
+export type InfoBoxProps = {
+  icon: React.ReactNode;
+  number: string;
+  title: string;
+  description: string;
+};

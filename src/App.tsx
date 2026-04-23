@@ -1,5 +1,6 @@
 import Header from "./components/Header";
 import Hero from "./components/Hero";
+import HowItWorks from "./components/HowItWorks";
 import UploadDropZone from "./components/UploadDropZone";
 import JobStatusCard from "./components/JobStatusCard";
 import { STATUS_LABEL } from "./types";
@@ -25,6 +26,7 @@ export default function App() {
       <div>
         <Header />
         <Hero />
+        <HowItWorks />
       </div>
 
       <div className="min-h-screen bg-gray-950 text-gray-100 flex flex-col items-center justify-center gap-8 px-4">
