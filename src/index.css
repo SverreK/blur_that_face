@@ -3,3 +3,7 @@
 .font-space {
   font-family: "Space Grotesk", sans-serif;
 }
+
+html {
+  scroll-behavior: smooth;
+}

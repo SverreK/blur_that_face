@@ -1,12 +1,9 @@
-import Header from "./components/Header";
-import Hero from "./components/Hero";
-import HowItWorks from "./components/HowItWorks";
-import UploadDropZone from "./components/UploadDropZone";
+import HomePage from "./components/HomePage";
 import JobStatusCard from "./components/JobStatusCard";
-import { STATUS_LABEL } from "./types";
 import { useJobPolling } from "./hooks/useJobPolling";
 import VideoPlayer from "./components/VideoPlayer";
 
+// App.tsx
 export default function App() {
   const {
     status,
@@ -17,45 +14,30 @@ export default function App() {
     uploadFile,
   } = useJobPolling();
 
-  // -------------------------------------------------------------------------
-  // Render
-  // -------------------------------------------------------------------------
-
   return (
     <>
-      <div>
-        <Header />
-        <Hero />
-        <HowItWorks />
-      </div>
-
-      <div className="min-h-screen bg-gray-950 text-gray-100 flex flex-col items-center justify-center gap-8 px-4">
-        <h1 className="text-4xl font-bold tracking-tight">Blur That Face</h1>
-
-        {/* Drop zone */}
-        {!job ? (
-          <UploadDropZone
-            onFileSelected={uploadFile}
-            disabled={isProcessing}
-            disabledLabel={STATUS_LABEL[status]}
-          />
-        ) : (
+      {!job ? (
+        <HomePage
+          onFileSelected={uploadFile}
+          isProcessing={isProcessing}
+          status={status}
+        />
+      ) : (
+        <>
           <VideoPlayer
             videoUrl={`/api/jobs/${job.id}/video`}
             fps={job.fps ?? 30}
             detections={detections}
           />
-        )}
-
-        {/* Status card */}
-        {status !== "idle" && job && (
-          <JobStatusCard
-            status={status}
-            job={job}
-            progressPercentage={progressPercentage}
-          />
-        )}
-      </div>
+          {status !== "idle" && (
+            <JobStatusCard
+              status={status}
+              job={job}
+              progressPercentage={progressPercentage}
+            />
+          )}
+        </>
+      )}
     </>
   );
 }

@@ -55,13 +55,14 @@ export default function UploadDropZone({
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
       className={[
-        "w-full max-w-lg border-2 border-dashed rounded-xl p-12 text-center transition-colors",
+        "relative max-w-[760px] mx-auto",
+        "border border-dashed rounded-[16px] px-[36px] py-[56px]",
+        "text-center overflow-hidden transition-all duration-200",
+        "bg-white/50",
         disabled
           ? "pointer-events-none opacity-50 cursor-not-allowed"
-          : "cursor-pointer",
-        dragOver
-          ? "border-blue-400 bg-blue-950/30"
-          : "border-gray-700 hover:border-gray-500",
+          : "cursor-pointer hover:bg-white/70",
+        dragOver ? "border-blue-400 bg-blue-950/30" : "border-black/20",
       ].join(" ")}
     >
       <input
@@ -71,7 +72,46 @@ export default function UploadDropZone({
         className="hidden"
         onChange={handleFileChange}
       />
-      <p className="text-lg text-gray-400">{label}</p>
+
+      <div className="absolute top-[12px] left-[12px] w-[14px] h-[14px] border-t border-l border-teal-500"></div>
+      <div className="absolute top-[12px] right-[12px] w-[14px] h-[14px] border-t border-r border-teal-500"></div>
+      <div className="absolute bottom-[12px] left-[12px] w-[14px] h-[14px] border-b border-l border-teal-500"></div>
+      <div className="absolute bottom-[12px] right-[12px] w-[14px] h-[14px] border-b border-r border-teal-500"></div>
+
+      <div className="w-[52px] h-[52px] rounded-[14px] bg-teal-500/10 flex items-center justify-center mx-auto mb-[16px]">
+        <svg className="w-6 h-6 text-teal-500" viewBox="0 0 24 24" fill="none">
+          <path
+            d="M12 3v13M7 10l5-7 5 7"
+            stroke="#475569"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M3 18v1.5A1.5 1.5 0 004.5 21h15a1.5 1.5 0 001.5-1.5V18"
+            stroke="#475569"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+          />
+        </svg>
+      </div>
+
+      <div className="font-space text-[16px] font-semibold text-black mb-[6px] tracking-[-0.02em]">
+        Drag & drop your video
+      </div>
+
+      <div className="text-[13px] text-black/50 mb-[20px]">
+        or click to browse
+      </div>
+
+      <span
+        className="inline-block px-[20px] py-[8px] rounded-[7px] bg-[#475569] text-white text-[12px] font-space font-semibold tracking-[-0.01em] hover:-translate-y-[1px]
+    hover:bg-teal-600 cursor-pointer"
+      >
+        Browse files
+      </span>
+
+      <p className="mt-4 text-sm text-gray-400">{label}</p>
     </div>
   );
 }

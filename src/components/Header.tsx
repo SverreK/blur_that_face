@@ -14,34 +14,40 @@ export default function Header() {
           <img src="/blind.png" className="w-[25px] h-[25px]" />
         </div>
 
-        <h1
-          className={`font-space font-bold text-[15px] tracking-[-0.03em] transition-colors duration-300 cursor-pointer ${
+        <a
+          href="#hero"
+          className={`font-space font-bold text-[18px] tracking-[-0.03em] transition-colors duration-300 cursor-pointer ${
             scrolled ? "text-black" : "text-white"
           }`}
         >
-          Blur that guy
-        </h1>
+          Blur That Face
+        </a>
       </div>
 
       <nav className="flex items-center">
         <ul className="flex items-center gap-5 text-[13px]">
           <li>
-            <button
+            <a
+              href="#how-it-works"
               className={`${scrolled ? "text-[rgba(24,23,31,0.6)]" : "text-[rgba(255,255,255,0.65)]"} cursor-pointer`}
             >
               How it works
-            </button>
+            </a>
           </li>
           <li>
-            <button
-              className={`font-sans text-[13px] font-medium rounded-[7px] cursor-pointer backdrop-blur-[10px] transition-all duration-300 ${
-                scrolled
-                  ? "bg-[rgb(24,23,31)] text-white border border-[rgb(24,23,31)] px-[18px] py-[7px]"
-                  : "bg-slate-600 text-white border border-[rgba(255,255,255,0.25)] px-[17px] py-[6px]"
-              }`}
+            <a
+              href="#get-started"
+              className={`
+                font-sans font-medium text-[13px] rounded-[7px] backdrop-blur-[10px] transition-all duration-200 ease-out
+                hover:-translate-y-[0.5px]
+                hover:bg-teal-600 cursor-pointer ${
+                  scrolled
+                    ? "bg-[rgb(24,23,31)] text-white border border-[rgb(24,23,31)] px-[18px] py-[7px]"
+                    : "bg-slate-600 text-white border border-[rgba(255,255,255,0.25)] px-[17px] py-[6px]"
+                }`}
             >
               Get started
-            </button>
+            </a>
           </li>
         </ul>
       </nav>

@@ -1,6 +1,9 @@
 export default function Hero() {
   return (
-    <section className="min-h-screen flex flex-col justify-center items-center bg-[#0e0c15] text-white">
+    <section
+      id="hero"
+      className="min-h-screen flex flex-col justify-center items-center bg-[#0e0c15] text-white"
+    >
       <h1 className="text-7xl font-space font-extrabold">
         <span className="blur-xs">Blur</span> <span>That</span>{" "}
         <span className="text-slate-400">Face</span>
@@ -14,10 +17,15 @@ export default function Hero() {
 
       <ul>
         <li className="flex justify-center items-baseline mt-7 gap-4">
-          <button className="text-sm text-[14px] font-space font-medium rounded-md pt-[8px] pb-[8px] pl-[13px] pr-[13px] bg-[#475569] cursor-pointer">
+          <a
+            href="#get-started"
+            className="text-sm text-[14px] font-space font-medium tracking-tighter rounded-md pt-[10px] pb-[10px] pl-[26px] pr-[26px] bg-[#475569]  transition-all duration-200 ease-out
+            hover:-translate-y-[1px]
+            hover:bg-teal-600 cursor-pointer"
+          >
             Start blurring
-          </button>
-          <p className="text-xs font-space text-[rgba(255,255,255,0.25)]">
+          </a>
+          <p className="text-[13px] font-space text-[rgba(255,255,255,0.25)]">
             Google BlazeFace 100% local
           </p>
         </li>
