@@ -1,5 +1,3 @@
-// HomePage.tsx
-import Header from "./Header";
 import Hero from "./Hero";
 import HowItWorks from "./HowItWorks";
 import GetStarted from "./GetStarted";
@@ -19,7 +17,6 @@ export default function HomePage({
 }: HomePageProps) {
   return (
     <>
-      <Header />
       <Hero />
       <HowItWorks />
       <GetStarted

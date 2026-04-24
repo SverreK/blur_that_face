@@ -66,7 +66,11 @@ export function useJobPolling() {
 
   async function uploadFile(file: File) {
     setStatus("uploading");
-    setJob(null);
+    setJob({
+      id: "",
+      filename: file.name,
+      status: "uploading",
+    });
 
     const body = new FormData();
     body.append("file", file);
@@ -80,16 +84,14 @@ export function useJobPolling() {
       if (!res.ok) {
         const { detail } = await res.json();
         setStatus("error");
-        setJob({
-          id: "",
-          filename: file.name,
-          status: "error",
-          error: detail,
-        });
+        setJob({ id: "", filename: file.name, status: "error", error: detail });
         return;
       }
 
       const { job_id } = await res.json();
+      setJob((prev) =>
+        prev ? { ...prev, id: job_id, status: "uploaded" } : null,
+      );
       setStatus("uploaded");
       startPolling(job_id);
     } catch (error) {
@@ -98,7 +100,7 @@ export function useJobPolling() {
         id: "",
         filename: file.name,
         status: "error",
-        error: "upload failed",
+        error: "Upload failed",
       });
     }
   }
@@ -118,6 +120,13 @@ export function useJobPolling() {
     ? Math.round((job.frame_progress.current / job.frame_progress.total) * 100)
     : null;
 
+  function resetJob() {
+    stopPolling();
+    setJob(null);
+    setDetections(null);
+    setStatus("idle");
+  }
+
   return {
     status,
     job,
@@ -125,7 +134,6 @@ export function useJobPolling() {
     isProcessing,
     progressPercentage,
     uploadFile,
-    startPolling,
-    stopPolling,
+    resetJob,
   };
 }
