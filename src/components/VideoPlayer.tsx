@@ -2,16 +2,20 @@ import { useRef, useEffect } from "react";
 import { useVideoFrame } from "../hooks/useVideoFrame";
 import type { DetectionData } from "../types";
 
-interface VideoPlayerProps {
+type VideoPlayerProps = {
   videoUrl: string;
   fps: number;
   detections: DetectionData | null;
-}
+  onTimeUpdate?: (time: number) => void;
+  onLoadedMetadata?: (duration: number) => void;
+};
 
 export default function VideoPlayer({
   videoUrl,
   fps,
   detections,
+  onTimeUpdate,
+  onLoadedMetadata,
 }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -64,16 +68,19 @@ export default function VideoPlayer({
   }, [currentFrame, detections]);
 
   return (
-    <div className="relative inline-block">
+    <div className="relative inline-block w-full">
       <video
         ref={videoRef}
-        controls
         src={videoUrl}
-        className="block max-w-full"
+        controls
+        className="block w-full"
+        onTimeUpdate={(e) => onTimeUpdate?.(e.currentTarget.currentTime)}
+        onLoadedMetadata={(e) => onLoadedMetadata?.(e.currentTarget.duration)}
       />
+
       <canvas
         ref={canvasRef}
-        className="absolute top-0 left-0 w-full h-full pointer-events-none"
+        className="absolute top-0 left-0 h-full w-full pointer-events-none"
       />
     </div>
   );

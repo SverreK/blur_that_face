@@ -1,7 +1,7 @@
 import Header from "./components/Header";
 import HomePage from "./components/HomePage";
 import ProcessingPage from "./components/ProcessingPage";
-import VideoPlayer from "./components/VideoPlayer";
+import EditorPage from "./components/EditorPage";
 import JobStatusCard from "./components/JobStatusCard";
 import { useJobPolling } from "./hooks/useJobPolling";
 
@@ -41,13 +41,7 @@ export default function App() {
         />
       )}
 
-      {isEditor && (
-        <VideoPlayer
-          videoUrl={`/api/jobs/${job.id}/video`}
-          fps={job.fps ?? 30}
-          detections={detections}
-        />
-      )}
+      {isEditor && job && <EditorPage job={job} detections={detections} />}
 
       {status === "error" && job && (
         <JobStatusCard

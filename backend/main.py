@@ -37,7 +37,7 @@ from pathlib import Path
 
 from fastapi import BackgroundTasks, FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel
 
 from detector import run_detection
@@ -230,23 +230,69 @@ def get_video(job_id: str):
     return FileResponse(video_path, media_type=media_type)
 
 @app.get("/api/jobs/{job_id}/detections")
-async def get_detections(job_id: str):
-    meta = _read_meta(job_id)
-    detections_path = meta.get("detections_path")
-    
-    if not detections_path or not Path(detections_path).exists():
-        raise HTTPException(status_code=404, detail="Detections not ready")
-    
-    with open(detections_path) as f:
-        return json.load(f)
-
-@app.get("/api/jobs/{job_id}/detections")
 def get_detections(job_id: str):
     meta = _read_meta(job_id)
     if meta["status"] not in ("detected", "rendering", "done"):
         raise HTTPException(status_code=409, detail="Detections not ready yet")
     detections_path = Path(meta["detections_path"])
     return FileResponse(detections_path, media_type="application/json")
+
+
+@app.get("/api/jobs/{job_id}/faces/{face_id}/thumbnail")
+def get_face_thumbnail(job_id: str, face_id: int):
+    """
+    Crop the detected face out of the frame where it first appears and return
+    it as a JPEG.
+
+    Steps:
+      1. Look up the face's first_frame and bbox_sample from meta.json.
+      2. Seek OpenCV to that frame — much faster than decoding every frame.
+      3. Crop the bounding box, adding a small padding so the thumbnail
+         shows a bit of context around the face.
+      4. Encode in-memory as JPEG and return directly — no temp file needed.
+    """
+    meta = _read_meta(job_id)
+
+    face_summary = next(
+        (f for f in meta.get("faces", []) if f["face_id"] == face_id),
+        None,
+    )
+    if face_summary is None:
+        raise HTTPException(status_code=404, detail="Face not found")
+
+    x, y, w, h = face_summary["bbox_sample"]
+    first_frame  = face_summary["first_frame"]
+
+    cap = cv2.VideoCapture(meta["video_path"])
+    if not cap.isOpened():
+        raise HTTPException(status_code=500, detail="Could not open video")
+
+    # CAP_PROP_POS_FRAMES seeks to the given 0-based frame index before the
+    # next cap.read(), so we get exactly the frame the face was first seen on.
+    cap.set(cv2.CAP_PROP_POS_FRAMES, first_frame)
+    ok, frame = cap.read()
+    cap.release()
+
+    if not ok:
+        raise HTTPException(status_code=500, detail="Could not decode frame")
+
+    # Expand the crop by 20 % of the face size on each side so the thumbnail
+    # shows forehead, chin and a little background — looks better than a
+    # tight bbox that cuts off hair and ears.
+    pad_x = int(w * 0.20)
+    pad_y = int(h * 0.20)
+    x1 = max(0, x - pad_x)
+    y1 = max(0, y - pad_y)
+    x2 = min(frame.shape[1], x + w + pad_x)
+    y2 = min(frame.shape[0], y + h + pad_y)
+
+    crop = frame[y1:y2, x1:x2]
+
+    ok, buf = cv2.imencode(".jpg", crop, [cv2.IMWRITE_JPEG_QUALITY, 85])
+    if not ok:
+        raise HTTPException(status_code=500, detail="Failed to encode thumbnail")
+
+    return Response(content=buf.tobytes(), media_type="image/jpeg")
 
 
 @app.get("/api/health")
