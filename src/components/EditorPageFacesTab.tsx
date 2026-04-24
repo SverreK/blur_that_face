@@ -1,4 +1,4 @@
-import type { JobMeta } from "./../types";
+import type { BlurSettings, JobMeta } from "./../types";
 
 const FACE_COLORS = [
   "bg-teal-400",
@@ -13,6 +13,7 @@ interface FacesTabProps {
   jobId: string;
   faces: JobMeta["faces"];
   selectedFaces: number[];
+  blurredFaces: Record<number, BlurSettings>;
   onToggleFace: (faceId: number) => void;
   onSelectAllFaces: () => void;
   onClearSelected: () => void;
@@ -22,6 +23,7 @@ export default function FacesTab({
   jobId,
   faces = [],
   selectedFaces,
+  blurredFaces,
   onToggleFace,
   onSelectAllFaces,
   onClearSelected,
@@ -33,7 +35,6 @@ export default function FacesTab({
           <p className="text-[13px] font-bold uppercase tracking-[0.18em] text-white/35">
             Faces
           </p>
-
           <span className="text-sm font-bold text-teal-400">
             {selectedFaces.length}/{faces.length}
           </span>
@@ -44,6 +45,7 @@ export default function FacesTab({
         <div className="flex flex-col gap-2 pb-4">
           {faces.map((face, index) => {
             const selected = selectedFaces.includes(face.face_id);
+            const blurred = face.face_id in blurredFaces;
 
             return (
               <button
@@ -56,14 +58,14 @@ export default function FacesTab({
                 }`}
               >
                 <div className="flex items-center gap-3">
+                  {/* Thumbnail — falls back to coloured placeholder */}
                   <img
                     src={`/api/jobs/${jobId}/faces/${face.face_id}/thumbnail`}
                     alt={`Person ${String.fromCharCode(65 + index)}`}
-                    className={`h-[43px] w-[43px] rounded-[7px] object-cover ${
+                    className={`h-[43px] w-[43px] shrink-0 rounded-[7px] object-cover ${
                       FACE_COLORS[index % FACE_COLORS.length]
                     }`}
                     onError={(e) => {
-                      // Fall back to a coloured placeholder if the crop fails
                       e.currentTarget.style.display = "none";
                       e.currentTarget.nextElementSibling?.removeAttribute("hidden");
                     }}
@@ -81,21 +83,23 @@ export default function FacesTab({
                     <p className="text-[16px] font-bold leading-tight text-white/85">
                       Person {String.fromCharCode(65 + index)}
                     </p>
-                    <p
-                      className={`mt-1 text-[14px] ${
-                        selected ? "text-teal-300" : "text-white/35"
-                      }`}
-                    >
-                      {selected ? "selected" : "visible"}
+                    {/* Status line: blurred takes priority over selected */}
+                    <p className={`mt-1 text-[14px] ${
+                      blurred
+                        ? "text-orange-300"
+                        : selected
+                        ? "text-teal-300"
+                        : "text-white/35"
+                    }`}>
+                      {blurred ? `blur · ${blurredFaces[face.face_id].type}` : selected ? "selected" : "visible"}
                     </p>
                   </div>
                 </div>
 
-                <span
-                  className={`h-2 w-2 rounded-full ${
-                    selected ? "bg-teal-300" : "bg-white/15"
-                  }`}
-                />
+                {/* Right indicator dot */}
+                <span className={`h-2 w-2 shrink-0 rounded-full ${
+                  blurred ? "bg-orange-400" : selected ? "bg-teal-300" : "bg-white/15"
+                }`} />
               </button>
             );
           })}
@@ -106,7 +110,6 @@ export default function FacesTab({
         <p className="mb-3 text-[15px] text-white/35">
           {selectedFaces.length} of {faces.length} faces selected
         </p>
-
         <div className="grid grid-cols-2 gap-2">
           <button
             onClick={onSelectAllFaces}
@@ -114,7 +117,6 @@ export default function FacesTab({
           >
             Select all
           </button>
-
           <button
             onClick={onClearSelected}
             className="h-[42px] rounded-[8px] border border-white/10 bg-transparent text-sm font-bold text-white/35 transition hover:bg-white/[0.05]"

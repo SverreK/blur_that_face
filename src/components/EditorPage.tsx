@@ -1,5 +1,6 @@
 import { useState } from "react";
-import type { DetectionData, JobMeta } from "../types";
+import type { BlurSettings, DetectionData, JobMeta } from "../types";
+import { DEFAULT_BLUR_SETTINGS } from "../types";
 import TopBar from "./EditorPageTopBar";
 import LeftPanel from "./EditorPageLeftPanel";
 import RightPanel from "./EditorPageRightPanel";
@@ -13,11 +14,20 @@ interface EditorPageProps {
 
 export default function EditorPage({ job, detections }: EditorPageProps) {
   const faces = job.faces ?? [];
+
+  // Which faces the user has ticked in the faces tab
   const [selectedFaces, setSelectedFaces] = useState<number[]>([]);
+
+  // Blur form — shared between BlurTab (edits it) and the apply action (reads it)
+  const [blurSettings, setBlurSettings] = useState<BlurSettings>(DEFAULT_BLUR_SETTINGS);
+
+  // face_id → the settings that were applied to it via "Apply selected"
+  const [blurredFaces, setBlurredFaces] = useState<Record<number, BlurSettings>>({});
+
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
 
-  const blurredCount = 0;
+  const blurredCount = Object.keys(blurredFaces).length;
   const totalFrames =
     job.total_frames ?? Math.max(...faces.map((f) => f.last_frame), 1);
 
@@ -37,6 +47,24 @@ export default function EditorPage({ job, detections }: EditorPageProps) {
     setSelectedFaces([]);
   }
 
+  // Stamp the current blur settings onto every selected face
+  function applyBlurToSelected() {
+    if (selectedFaces.length === 0) return;
+    setBlurredFaces((prev) => {
+      const next = { ...prev };
+      selectedFaces.forEach((id) => {
+        next[id] = { ...blurSettings };
+      });
+      return next;
+    });
+  }
+
+  // Reset the blur form back to defaults and remove all applied blur
+  function resetBlurSettings() {
+    setBlurSettings(DEFAULT_BLUR_SETTINGS);
+    setBlurredFaces({});
+  }
+
   return (
     <main className="min-h-screen bg-[#0b0911] text-white pt-[60px]">
       <TopBar
@@ -51,9 +79,14 @@ export default function EditorPage({ job, detections }: EditorPageProps) {
           jobId={job.id}
           faces={faces}
           selectedFaces={selectedFaces}
+          blurredFaces={blurredFaces}
+          blurSettings={blurSettings}
           onToggleFace={toggleFace}
           onSelectAllFaces={selectAllFaces}
           onClearSelected={clearSelected}
+          onChangeBlurSettings={setBlurSettings}
+          onApplyBlur={applyBlurToSelected}
+          onResetBlur={resetBlurSettings}
         />
 
         <section className="sidebar-scroll overflow-y-auto bg-[#100e17] p-4">
@@ -63,6 +96,7 @@ export default function EditorPage({ job, detections }: EditorPageProps) {
                 videoUrl={`/api/jobs/${job.id}/video`}
                 fps={job.fps ?? 30}
                 detections={detections}
+                blurredFaces={blurredFaces}
                 onTimeUpdate={setCurrentTime}
                 onLoadedMetadata={setDuration}
               />

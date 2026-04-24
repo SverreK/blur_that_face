@@ -36,6 +36,29 @@ export const STATUS_LABEL: Record<JobStatus, string> = {
   error: "Error",
 };
 
+export type BlurType      = "Gaussian" | "Pixelate" | "Solid mask";
+export type BlurColor     = "Neutral" | "Warm" | "Cool";
+export type BlurShape     = "Rectangle" | "Ellipse";
+export type BlurSmoothing = "None" | "Low" | "Medium" | "High";
+
+export interface BlurSettings {
+  type:      BlurType;
+  strength:  number;       // 0-100 %
+  color:     BlurColor;
+  padding:   number;       // 0-50 % of bbox dimension added on each side
+  shape:     BlurShape;
+  smoothing: BlurSmoothing;
+}
+
+export const DEFAULT_BLUR_SETTINGS: BlurSettings = {
+  type:      "Gaussian",
+  strength:  60,
+  color:     "Neutral",
+  padding:   15,
+  shape:     "Rectangle",
+  smoothing: "Low",
+};
+
 export interface FaceDetection {
   face_id: number;
   bbox: number[]; // [x, y, width, height]

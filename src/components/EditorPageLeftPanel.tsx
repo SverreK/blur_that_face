@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { JobMeta } from "./../types";
+import type { BlurSettings, JobMeta } from "./../types";
 import FacesTab from "./EditorPageFacesTab";
 import BlurTab from "./EditorPageBlurTab";
 
@@ -7,18 +7,28 @@ interface LeftPanelProps {
   jobId: string;
   faces: JobMeta["faces"];
   selectedFaces: number[];
+  blurredFaces: Record<number, BlurSettings>;
+  blurSettings: BlurSettings;
   onToggleFace: (faceId: number) => void;
   onSelectAllFaces: () => void;
   onClearSelected: () => void;
+  onChangeBlurSettings: (s: BlurSettings) => void;
+  onApplyBlur: () => void;
+  onResetBlur: () => void;
 }
 
 export default function LeftPanel({
   jobId,
   faces = [],
   selectedFaces,
+  blurredFaces,
+  blurSettings,
   onToggleFace,
   onSelectAllFaces,
   onClearSelected,
+  onChangeBlurSettings,
+  onApplyBlur,
+  onResetBlur,
 }: LeftPanelProps) {
   const [activeTab, setActiveTab] = useState<"faces" | "blur">("faces");
 
@@ -55,6 +65,7 @@ export default function LeftPanel({
           jobId={jobId}
           faces={faces}
           selectedFaces={selectedFaces}
+          blurredFaces={blurredFaces}
           onToggleFace={onToggleFace}
           onSelectAllFaces={onSelectAllFaces}
           onClearSelected={onClearSelected}
@@ -62,7 +73,10 @@ export default function LeftPanel({
       ) : (
         <BlurTab
           selectedCount={selectedFaces.length}
-          onClearSelected={onClearSelected}
+          blurSettings={blurSettings}
+          onChangeBlurSettings={onChangeBlurSettings}
+          onApplyBlur={onApplyBlur}
+          onResetBlur={onResetBlur}
         />
       )}
     </aside>
