@@ -1,4 +1,4 @@
-import type { JobMeta, BlurSettings, JobStatus } from "../types";
+import type { JobMeta, BlurSettings, JobStatus } from '../types';
 
 interface EditorTopBarProps {
   job: JobMeta;
@@ -32,7 +32,7 @@ export default function TopBar({
           <span className="text-teal-400">●</span> {blurredCount} blurred
         </span>
 
-        {status === "rendering" && (
+        {status === 'rendering' && (
           <div className="flex items-center gap-2 w-40">
             <div className="relative flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden">
               <div
@@ -46,7 +46,7 @@ export default function TopBar({
           </div>
         )}
 
-        {status === "done" && (
+        {status === 'done' && (
           <>
             <a
               href={`/api/jobs/${job.id}/output`}
@@ -55,14 +55,17 @@ export default function TopBar({
             >
               Download again
             </a>
-            <button onClick={onExportNew}>
+            <button onClick={onExportNew} className="font-bold bg-teal-600 text-sm text-white/80 hover:text-white transition-colors disabled:cursor-not-allowed disabled:opacity-40 px-4 py-0.8 border border-white/10 rounded cursor-pointer">
               Export new
             </button>
           </>
         )}
 
-        {(status === "detected" || status === "uploaded" || status === "detecting") && (
+        {(status === 'detected' ||
+          status === 'uploaded' ||
+          status === 'detecting') && (
           <button
+            className="font-bold bg-teal-600 text-sm text-white/80 hover:text-white transition-colors disabled:cursor-not-allowed disabled:opacity-40 px-4 py-0.8 border border-white/10 rounded cursor-pointer"
             onClick={onExport}
             disabled={Object.keys(blurredFaces).length === 0}
           >
