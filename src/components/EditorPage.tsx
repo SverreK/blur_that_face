@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
-import type { BlurSettings, DetectionData, JobMeta, JobStatus } from "../types";
-import { DEFAULT_BLUR_SETTINGS } from "../types";
-import TopBar from "./EditorPageTopBar";
-import LeftPanel from "./EditorPageLeftPanel";
-import RightPanel from "./EditorPageRightPanel";
-import FaceTimeline from "./EditorPageFacesTimeline";
-import VideoPlayer from "./VideoPlayer";
+import { useState, useEffect } from 'react';
+import type { BlurSettings, DetectionData, JobMeta, JobStatus } from '../types';
+import { DEFAULT_BLUR_SETTINGS } from '../types';
+import TopBar from './EditorPageTopBar';
+import LeftPanel from './EditorPageLeftPanel';
+import RightPanel from './EditorPageRightPanel';
+import FaceTimeline from './EditorPageFacesTimeline';
+import VideoPlayer from './VideoPlayer';
 
 interface EditorPageProps {
   job: JobMeta;
@@ -37,6 +37,7 @@ export default function EditorPage({
     Record<string, BlurSettings>
   >({});
 
+
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
 
@@ -46,46 +47,84 @@ export default function EditorPage({
 
   // Once rendering finishes, clear the override so "done" state shows correctly.
   useEffect(() => {
-    if (status === "done") setExportNew(false);
+    if (status === 'done') setExportNew(false);
   }, [status]);
 
-  const effectiveStatus: JobStatus = exportNew ? "detected" : status;
+  const effectiveStatus: JobStatus = exportNew ? 'detected' : status;
 
   const blurredCount = Object.keys(blurredFaces).length;
   const totalFrames =
     job.total_frames ?? Math.max(...faces.map((f) => f.last_frame), 1);
 
   function toggleFace(trackId: string) {
-    setSelectedFaces((prev) =>
-      prev.includes(trackId)
-        ? prev.filter((id) => id !== trackId)
-        : [...prev, trackId],
+    if (!(trackId in blurredFaces)) {
+      // Not yet blurred — blur it immediately with the current settings
+      setBlurredFaces((prev) => ({ ...prev, [trackId]: { ...blurSettings } }));
+    } else {
+      // Already blurred — toggle whether it's selected for editing
+      setSelectedFaces((prev) =>
+        prev.includes(trackId)
+          ? prev.filter((id) => id !== trackId)
+          : [...prev, trackId],
+      );
+    }
+  }
+
+  // Select all blurred faces for editing (preserves faces array order)
+  function selectAllFaces() {
+    setSelectedFaces(
+      faces
+        .filter((f) => f.track_id in blurredFaces)
+        .map((f) => f.track_id),
     );
   }
 
-  function selectAllFaces() {
-    setSelectedFaces(faces.map((face) => face.track_id));
-  }
-
+  // Deselect all from editing; blur is unaffected
   function clearSelected() {
     setSelectedFaces([]);
   }
 
-  useEffect(() => {
-    if (selectedFaces.length === 0) return;
-
+  function blurAllFaces() {
     setBlurredFaces((prev) => {
       const next = { ...prev };
-      selectedFaces.forEach((id) => {
-        next[id] = { ...blurSettings };
+      faces.forEach((f) => {
+        if (!(f.track_id in next)) {
+          next[f.track_id] = { ...blurSettings };
+        }
       });
       return next;
     });
-  }, [blurSettings, selectedFaces]);
+  }
 
-  // Reset the blur form back to defaults and remove all applied blur
+  function resetAllFaces() {
+    setBlurredFaces({});
+    setSelectedFaces([]);
+  }
+
+  // When blur settings change, push the new values to every face currently
+  // selected for editing. Fires only on blurSettings changes, not on selection changes.
+  useEffect(() => {
+    if (selectedFaces.length === 0) return;
+    setBlurredFaces((prev) => {
+      const next = { ...prev };
+      selectedFaces.forEach((id) => {
+        if (id in next) next[id] = { ...blurSettings };
+      });
+      return next;
+    });
+  }, [blurSettings]); // eslint-disable-line react-hooks/exhaustive-deps
+
   function resetBlurSettings() {
     setBlurSettings(DEFAULT_BLUR_SETTINGS);
+  }
+
+  function removeBlurFromFace(trackId: string) {
+    setBlurredFaces((prev) => {
+      const next = { ...prev };
+      delete next[trackId];
+      return next;
+    });
+    setSelectedFaces((prev) => prev.filter((id) => id !== trackId));
   }
 
   return (
@@ -114,6 +153,9 @@ export default function EditorPage({
           onClearSelected={clearSelected}
           onChangeBlurSettings={setBlurSettings}
           onResetBlur={resetBlurSettings}
+          onRemoveBlur={removeBlurFromFace}
+          onBlurAll={blurAllFaces}
+          onResetAll={resetAllFaces}
         />
 
         <section className="sidebar-scroll overflow-y-auto bg-[#100e17] p-4">

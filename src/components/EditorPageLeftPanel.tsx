@@ -1,19 +1,22 @@
-import { useState } from "react";
-import type { BlurSettings, JobMeta } from "./../types";
-import FacesTab from "./EditorPageFacesTab";
-import BlurTab from "./EditorPageBlurTab";
+import { useState } from 'react';
+import type { BlurSettings, JobMeta } from './../types';
+import FacesTab from './EditorPageFacesTab';
+import BlurTab from './EditorPageBlurTab';
 
 interface LeftPanelProps {
   jobId: string;
-  faces: JobMeta["faces"];
+  faces: JobMeta['faces'];
   selectedFaces: string[];
   blurredFaces: Record<string, BlurSettings>;
   blurSettings: BlurSettings;
   onToggleFace: (trackId: string) => void;
   onSelectAllFaces: () => void;
   onClearSelected: () => void;
+  onRemoveBlur: (trackId: string) => void;
   onChangeBlurSettings: (s: BlurSettings) => void;
   onResetBlur: () => void;
+  onBlurAll: () => void;
+  onResetAll: () => void;
 }
 
 export default function LeftPanel({
@@ -25,32 +28,35 @@ export default function LeftPanel({
   onToggleFace,
   onSelectAllFaces,
   onClearSelected,
+  onRemoveBlur,
   onChangeBlurSettings,
   onResetBlur,
+  onBlurAll,
+  onResetAll,
 }: LeftPanelProps) {
-  const [activeTab, setActiveTab] = useState<"faces" | "blur">("faces");
+  const [activeTab, setActiveTab] = useState<'faces' | 'blur'>('faces');
 
   return (
     <aside className="flex flex-col overflow-hidden border-r border-white/10 bg-[#0d0b14]">
       <div className="shrink-0 px-4 pb-3 pt-4">
         <div className="mb-4 flex rounded-[10px] border border-white/10 bg-white/[0.03] p-1">
           <button
-            onClick={() => setActiveTab("faces")}
+            onClick={() => setActiveTab('faces')}
             className={`h-9 flex-1 rounded-[7px] text-[13px] font-bold transition ${
-              activeTab === "faces"
-                ? "bg-teal-400 text-[#06110f]"
-                : "text-white/40 hover:text-white/70"
+              activeTab === 'faces'
+                ? 'bg-teal-400 text-[#06110f]'
+                : 'text-white/40 hover:text-white/70'
             }`}
           >
             Select faces
           </button>
 
           <button
-            onClick={() => setActiveTab("blur")}
+            onClick={() => setActiveTab('blur')}
             className={`h-9 flex-1 rounded-[7px] text-[13px] font-bold transition ${
-              activeTab === "blur"
-                ? "bg-teal-400 text-[#06110f]"
-                : "text-white/40 hover:text-white/70"
+              activeTab === 'blur'
+                ? 'bg-teal-400 text-[#06110f]'
+                : 'text-white/40 hover:text-white/70'
             }`}
           >
             Settings
@@ -58,7 +64,7 @@ export default function LeftPanel({
         </div>
       </div>
 
-      {activeTab === "faces" ? (
+      {activeTab === 'faces' ? (
         <FacesTab
           jobId={jobId}
           faces={faces}
@@ -67,6 +73,9 @@ export default function LeftPanel({
           onToggleFace={onToggleFace}
           onSelectAllFaces={onSelectAllFaces}
           onClearSelected={onClearSelected}
+          onRemoveBlur={onRemoveBlur}
+          onBlurAll={onBlurAll}
+          onResetAll={onResetAll}
         />
       ) : (
         <BlurTab
