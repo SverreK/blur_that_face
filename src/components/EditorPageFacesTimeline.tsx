@@ -47,7 +47,7 @@ export default function FaceTimeline({
 
           return (
             <div
-              key={face.face_id}
+              key={face.track_id}
               className="grid grid-cols-[90px_minmax(0,1fr)] items-center gap-3"
             >
               <p className="text-sm font-bold text-white/65">

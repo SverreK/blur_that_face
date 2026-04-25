@@ -36,19 +36,20 @@ export default function BlurTab({
 
       <div className="sidebar-scroll flex-1 overflow-y-auto px-4">
         <div className="space-y-6 pb-4">
-
           {/* ── Blur type ───────────────────────────────────────────── */}
           <SettingGroup label="Blur type">
             <div className="grid grid-cols-1 gap-2">
-              {(["Gaussian", "Pixelate", "Solid mask"] as BlurType[]).map((t) => (
-                <button
-                  key={t}
-                  onClick={() => set("type", t)}
-                  className={btn(blurSettings.type === t)}
-                >
-                  {t}
-                </button>
-              ))}
+              {(["Gaussian", "Pixelate", "Solid mask"] as BlurType[]).map(
+                (t) => (
+                  <button
+                    key={t}
+                    onClick={() => set("type", t)}
+                    className={btn(blurSettings.type === t)}
+                  >
+                    {t}
+                  </button>
+                ),
+              )}
             </div>
           </SettingGroup>
 
@@ -123,18 +124,19 @@ export default function BlurTab({
           */}
           <SettingGroup label="Smoothing">
             <div className="grid grid-cols-4 gap-1.5">
-              {(["None", "Low", "Medium", "High"] as BlurSmoothing[]).map((s) => (
-                <button
-                  key={s}
-                  onClick={() => set("smoothing", s)}
-                  className={btn(blurSettings.smoothing === s, true)}
-                >
-                  {s}
-                </button>
-              ))}
+              {(["None", "Low", "Medium", "High"] as BlurSmoothing[]).map(
+                (s) => (
+                  <button
+                    key={s}
+                    onClick={() => set("smoothing", s)}
+                    className={btn(blurSettings.smoothing === s, true)}
+                  >
+                    {s}
+                  </button>
+                ),
+              )}
             </div>
           </SettingGroup>
-
         </div>
       </div>
 
@@ -191,7 +193,8 @@ function SliderRow({
       <div className="mb-2 flex items-center justify-between">
         <span className="text-sm text-white/40">{label}</span>
         <span className="font-mono text-sm text-white/70">
-          {value}{unit}
+          {value}
+          {unit}
         </span>
       </div>
       <input

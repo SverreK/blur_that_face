@@ -6,10 +6,10 @@ import BlurTab from "./EditorPageBlurTab";
 interface LeftPanelProps {
   jobId: string;
   faces: JobMeta["faces"];
-  selectedFaces: number[];
-  blurredFaces: Record<number, BlurSettings>;
+  selectedFaces: string[];
+  blurredFaces: Record<string, BlurSettings>;
   blurSettings: BlurSettings;
-  onToggleFace: (faceId: number) => void;
+  onToggleFace: (trackId: string) => void;
   onSelectAllFaces: () => void;
   onClearSelected: () => void;
   onChangeBlurSettings: (s: BlurSettings) => void;

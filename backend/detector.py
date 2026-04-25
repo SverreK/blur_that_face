@@ -6,6 +6,8 @@ from pathlib import Path
 from mediapipe.tasks import python as mp_python
 from mediapipe.tasks.python import vision as mp_vision
 
+from tracker import run_tracking
+
 # The Tasks API requires its own model format — different from the legacy
 # blaze_face_full_range.tflite used by mp.solutions.face_detection.
 # The Dockerfile downloads blaze_face_short_range.tflite from the official
@@ -102,7 +104,10 @@ def run_detection(
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(results, indent=2))
 
-    return results
+    tracked = run_tracking(results, video_path)
+    output_path.write_text(json.dumps(tracked, indent=2))
+
+    return tracked
 
 
 if __name__ == "__main__":

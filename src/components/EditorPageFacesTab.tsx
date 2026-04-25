@@ -12,9 +12,9 @@ const FACE_COLORS = [
 interface FacesTabProps {
   jobId: string;
   faces: JobMeta["faces"];
-  selectedFaces: number[];
-  blurredFaces: Record<number, BlurSettings>;
-  onToggleFace: (faceId: number) => void;
+  selectedFaces: string[];
+  blurredFaces: Record<string, BlurSettings>;
+  onToggleFace: (trackId: string) => void;
   onSelectAllFaces: () => void;
   onClearSelected: () => void;
 }
@@ -44,13 +44,13 @@ export default function FacesTab({
       <div className="sidebar-scroll flex-1 overflow-y-auto px-4">
         <div className="flex flex-col gap-2 pb-4">
           {faces.map((face, index) => {
-            const selected = selectedFaces.includes(face.face_id);
-            const blurred = face.face_id in blurredFaces;
+            const selected = selectedFaces.includes(face.track_id);
+            const blurred = face.track_id in blurredFaces;
 
             return (
               <button
-                key={face.face_id}
-                onClick={() => onToggleFace(face.face_id)}
+                key={face.track_id}
+                onClick={() => onToggleFace(face.track_id)}
                 className={`flex h-[64px] items-center justify-between rounded-[10px] border px-3 text-left transition ${
                   selected
                     ? "border-teal-400/60 bg-teal-400/15"
@@ -60,14 +60,16 @@ export default function FacesTab({
                 <div className="flex items-center gap-3">
                   {/* Thumbnail — falls back to coloured placeholder */}
                   <img
-                    src={`/api/jobs/${jobId}/faces/${face.face_id}/thumbnail`}
+                    src={`/api/jobs/${jobId}/faces/${face.track_id}/thumbnail`}
                     alt={`Person ${String.fromCharCode(65 + index)}`}
                     className={`h-[43px] w-[43px] shrink-0 rounded-[7px] object-cover ${
                       FACE_COLORS[index % FACE_COLORS.length]
                     }`}
                     onError={(e) => {
                       e.currentTarget.style.display = "none";
-                      e.currentTarget.nextElementSibling?.removeAttribute("hidden");
+                      e.currentTarget.nextElementSibling?.removeAttribute(
+                        "hidden",
+                      );
                     }}
                   />
                   <div
@@ -84,22 +86,34 @@ export default function FacesTab({
                       Person {String.fromCharCode(65 + index)}
                     </p>
                     {/* Status line: blurred takes priority over selected */}
-                    <p className={`mt-1 text-[14px] ${
-                      blurred
-                        ? "text-orange-300"
+                    <p
+                      className={`mt-1 text-[14px] ${
+                        blurred
+                          ? "text-orange-300"
+                          : selected
+                            ? "text-teal-300"
+                            : "text-white/35"
+                      }`}
+                    >
+                      {blurred
+                        ? `blur · ${blurredFaces[face.track_id].type}`
                         : selected
-                        ? "text-teal-300"
-                        : "text-white/35"
-                    }`}>
-                      {blurred ? `blur · ${blurredFaces[face.face_id].type}` : selected ? "selected" : "visible"}
+                          ? "selected"
+                          : "visible"}
                     </p>
                   </div>
                 </div>
 
                 {/* Right indicator dot */}
-                <span className={`h-2 w-2 shrink-0 rounded-full ${
-                  blurred ? "bg-orange-400" : selected ? "bg-teal-300" : "bg-white/15"
-                }`} />
+                <span
+                  className={`h-2 w-2 shrink-0 rounded-full ${
+                    blurred
+                      ? "bg-orange-400"
+                      : selected
+                        ? "bg-teal-300"
+                        : "bg-white/15"
+                  }`}
+                />
               </button>
             );
           })}

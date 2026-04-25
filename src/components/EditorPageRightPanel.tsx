@@ -31,7 +31,7 @@ export default function RightPanel({ job, blurredCount }: RightPanelProps) {
         <div className="space-y-2">
           {faces.map((face, index) => (
             <div
-              key={face.face_id}
+              key={face.track_id}
               className="flex items-center justify-between text-sm text-white/35"
             >
               <span>• Person {String.fromCharCode(65 + index)}</span>

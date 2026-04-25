@@ -16,13 +16,17 @@ export default function EditorPage({ job, detections }: EditorPageProps) {
   const faces = job.faces ?? [];
 
   // Which faces the user has ticked in the faces tab
-  const [selectedFaces, setSelectedFaces] = useState<number[]>([]);
+  const [selectedFaces, setSelectedFaces] = useState<string[]>([]);
 
   // Blur form — shared between BlurTab (edits it) and the apply action (reads it)
-  const [blurSettings, setBlurSettings] = useState<BlurSettings>(DEFAULT_BLUR_SETTINGS);
+  const [blurSettings, setBlurSettings] = useState<BlurSettings>(
+    DEFAULT_BLUR_SETTINGS,
+  );
 
-  // face_id → the settings that were applied to it via "Apply selected"
-  const [blurredFaces, setBlurredFaces] = useState<Record<number, BlurSettings>>({});
+  // track_id → the settings that were applied to it via "Apply selected"
+  const [blurredFaces, setBlurredFaces] = useState<
+    Record<string, BlurSettings>
+  >({});
 
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -31,16 +35,16 @@ export default function EditorPage({ job, detections }: EditorPageProps) {
   const totalFrames =
     job.total_frames ?? Math.max(...faces.map((f) => f.last_frame), 1);
 
-  function toggleFace(faceId: number) {
+  function toggleFace(trackId: string) {
     setSelectedFaces((prev) =>
-      prev.includes(faceId)
-        ? prev.filter((id) => id !== faceId)
-        : [...prev, faceId],
+      prev.includes(trackId)
+        ? prev.filter((id) => id !== trackId)
+        : [...prev, trackId],
     );
   }
 
   function selectAllFaces() {
-    setSelectedFaces(faces.map((face) => face.face_id));
+    setSelectedFaces(faces.map((face) => face.track_id));
   }
 
   function clearSelected() {

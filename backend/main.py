@@ -87,57 +87,6 @@ def _write_meta(job_id: str, data: dict) -> None:
     _job_dir(job_id).mkdir(parents=True, exist_ok=True)
     (_job_dir(job_id) / "meta.json").write_text(json.dumps(data, indent=2))
 
-
-# ---------------------------------------------------------------------------
-# Face-ID assignment
-#
-# MediaPipe gives us raw per-frame bounding boxes but no cross-frame IDs.
-# This naïve pass assigns a stable integer face_id by matching each box in
-# frame N to the nearest box seen in frame N-1 (IoU centre distance).
-# A proper tracker (SORT/DeepSORT) replaces this in a later step.
-# ---------------------------------------------------------------------------
-
-def _iou_center_dist(a: list, b: list) -> float:
-    """Euclidean distance between centres of two [x, y, w, h] boxes."""
-    ax, ay = a[0] + a[2] / 2, a[1] + a[3] / 2
-    bx, by = b[0] + b[2] / 2, b[1] + b[3] / 2
-    return ((ax - bx) ** 2 + (ay - by) ** 2) ** 0.5
-
-
-def _assign_face_ids(frames: list[dict], max_dist: float = 80.0) -> tuple[list[dict], int]:
-    """
-    Annotate every face dict in *frames* with a stable ``face_id`` integer.
-    Returns (annotated_frames, total_unique_faces).
-    """
-    next_id = 0
-    prev_faces: list[dict] = []   # faces seen in the previous frame
-
-    for frame in frames:
-        current: list[dict] = frame["faces"]
-        matched_ids: set[int] = set()
-
-        for face in current:
-            best_id   = None
-            best_dist = max_dist
-
-            for prev in prev_faces:
-                d = _iou_center_dist(face["bbox"], prev["bbox"])
-                if d < best_dist and prev["face_id"] not in matched_ids:
-                    best_dist = d
-                    best_id   = prev["face_id"]
-
-            if best_id is None:
-                best_id = next_id
-                next_id += 1
-
-            face["face_id"] = best_id
-            matched_ids.add(best_id)
-
-        prev_faces = current
-
-    return frames, next_id
-
-
 # ---------------------------------------------------------------------------
 # Detection background task
 # ---------------------------------------------------------------------------
@@ -175,26 +124,23 @@ def _run_detection(job_id: str) -> None:
             progress_cb=_progress,
         )
 
-        # Assign stable face_ids across frames. _assign_face_ids mutates
-        # results["frames"] in-place, so we rewrite detections.json afterwards
-        # so the /detections endpoint returns face_id-annotated data.
-        annotated_frames, num_faces = _assign_face_ids(results["frames"])
         detections_out.write_text(json.dumps(results, indent=2))
 
-        # face_summary: { face_id -> { first_frame, last_frame, bbox_sample } }
-        face_summary: dict[int, dict] = {}
-        for frame in annotated_frames:
+        face_summary: dict[str, dict] = {}
+        for frame in results["frames"]:
             for face in frame["faces"]:
-                fid = face["face_id"]
-                if fid not in face_summary:
-                    face_summary[fid] = {
-                        "face_id": fid,
+                tid = face["track_id"]
+                if tid not in face_summary:
+                    face_summary[tid] = {
+                        "track_id":    tid,
                         "first_frame": frame["frame"],
                         "last_frame":  frame["frame"],
                         "bbox_sample": face["bbox"],
                     }
                 else:
-                    face_summary[fid]["last_frame"] = frame["frame"]
+                    face_summary[tid]["last_frame"] = frame["frame"]
+
+        num_faces = len(face_summary)
 
         meta.update({
             "status":       "detected",
@@ -238,8 +184,8 @@ def get_detections(job_id: str):
     return FileResponse(detections_path, media_type="application/json")
 
 
-@app.get("/api/jobs/{job_id}/faces/{face_id}/thumbnail")
-def get_face_thumbnail(job_id: str, face_id: int):
+@app.get("/api/jobs/{job_id}/faces/{track_id}/thumbnail")
+def get_face_thumbnail(job_id: str, track_id: str):
     """
     Crop the detected face out of the frame where it first appears and return
     it as a JPEG.
@@ -254,7 +200,7 @@ def get_face_thumbnail(job_id: str, face_id: int):
     meta = _read_meta(job_id)
 
     face_summary = next(
-        (f for f in meta.get("faces", []) if f["face_id"] == face_id),
+        (f for f in meta.get("faces", []) if f["track_id"] == track_id),
         None,
     )
     if face_summary is None:
@@ -353,7 +299,7 @@ def get_job(job_id: str):
 # --- Render blurred video (stub) -------------------------------------------
 
 class RenderRequest(BaseModel):
-    face_id: int
+    track_id: str
 
 
 @app.post("/api/jobs/{job_id}/render", status_code=202)
@@ -366,7 +312,7 @@ def render(job_id: str, body: RenderRequest):
         )
 
     meta["status"]           = "rendering"
-    meta["selected_face_id"] = body.face_id
+    meta["selected_face_id"] = body.track_id
     _write_meta(job_id, meta)
 
     # TODO: apply blur/black-box to frames and reassemble with FFmpeg
