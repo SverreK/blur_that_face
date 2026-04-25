@@ -185,7 +185,7 @@ export default function EditorPage({
           </div>
         </section>
 
-        <RightPanel job={job} blurredCount={blurredCount} />
+        <RightPanel job={job} blurredCount={blurredCount} duration={duration} />
       </div>
     </main>
   );

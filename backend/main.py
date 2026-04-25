@@ -270,6 +270,7 @@ async def upload(
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
     video_path = UPLOAD_DIR / f"{job_id}{ext}"
     video_path.write_bytes(await file.read())
+    format_name = ext.replace(".", "").upper()
 
     # Probe FPS and dimensions immediately so the frontend has correct values
     # before detection starts, rather than falling back to a hardcoded default.
@@ -277,7 +278,10 @@ async def upload(
     fps    = cap.get(cv2.CAP_PROP_FPS) or 30.0
     width  = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    fourcc = int(cap.get(cv2.CAP_PROP_FOURCC))
     cap.release()
+
+    codec = "".join([chr((fourcc >> 8 * i) & 0xFF) for i in range(4)])
 
     _write_meta(job_id, {
         "id":         job_id,
@@ -287,6 +291,8 @@ async def upload(
         "fps":        fps,
         "width":      width,
         "height":     height,
+        "format":     format_name,
+        "codec":      codec,
         "faces":      [],
     })
 

@@ -1,12 +1,12 @@
 export type JobStatus =
-  | "idle"
-  | "uploading"
-  | "uploaded"
-  | "detecting"
-  | "detected"
-  | "rendering"
-  | "done"
-  | "error";
+  | 'idle'
+  | 'uploading'
+  | 'uploaded'
+  | 'detecting'
+  | 'detected'
+  | 'rendering'
+  | 'done'
+  | 'error';
 
 export interface JobMeta {
   id: string;
@@ -15,7 +15,11 @@ export interface JobMeta {
   error?: string;
   num_faces?: number;
   fps?: number;
+  width?: number;
+  height?: number;
   total_frames?: number;
+  format?: string;
+  codec?: string;
   frame_progress?: { current: number; total: number } | null;
   faces?: {
     track_id: string;
@@ -24,22 +28,21 @@ export interface JobMeta {
     bbox_sample: number[];
   }[];
 }
-
 export const STATUS_LABEL: Record<JobStatus, string> = {
-  idle: "Waiting for upload",
-  uploading: "Uploading…",
-  uploaded: "Uploaded — queuing detection…",
-  detecting: "Detecting faces…",
-  detected: "Detection complete",
-  rendering: "Rendering blurred video…",
-  done: "Done",
-  error: "Error",
+  idle: 'Waiting for upload',
+  uploading: 'Uploading…',
+  uploaded: 'Uploaded — queuing detection…',
+  detecting: 'Detecting faces…',
+  detected: 'Detection complete',
+  rendering: 'Rendering blurred video…',
+  done: 'Done',
+  error: 'Error',
 };
 
-export type BlurType = "Gaussian" | "Pixelate" | "Solid mask";
-export type BlurColor = "Neutral" | "Warm" | "Cool";
-export type BlurShape = "Rectangle" | "Ellipse";
-export type BlurSmoothing = "None" | "Low" | "Medium" | "High";
+export type BlurType = 'Gaussian' | 'Pixelate' | 'Solid mask';
+export type BlurColor = 'Neutral' | 'Warm' | 'Cool';
+export type BlurShape = 'Rectangle' | 'Ellipse';
+export type BlurSmoothing = 'None' | 'Low' | 'Medium' | 'High';
 
 export interface BlurSettings {
   type: BlurType;
@@ -51,12 +54,12 @@ export interface BlurSettings {
 }
 
 export const DEFAULT_BLUR_SETTINGS: BlurSettings = {
-  type: "Gaussian",
+  type: 'Gaussian',
   strength: 80,
-  color: "Neutral",
+  color: 'Neutral',
   padding: 15,
-  shape: "Rectangle",
-  smoothing: "Low",
+  shape: 'Rectangle',
+  smoothing: 'Low',
 };
 
 export interface FaceDetection {
