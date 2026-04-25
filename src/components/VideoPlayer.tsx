@@ -1,12 +1,12 @@
-import { useRef, useEffect } from "react";
-import { useVideoFrame } from "../hooks/useVideoFrame";
+import { useRef, useEffect, useImperativeHandle, forwardRef } from 'react';
+import { useVideoFrame } from '../hooks/useVideoFrame';
 import type {
   BlurColor,
   BlurSettings,
   BlurShape,
   BlurSmoothing,
   DetectionData,
-} from "../types";
+} from '../types';
 
 type VideoPlayerProps = {
   videoUrl: string;
@@ -17,6 +17,10 @@ type VideoPlayerProps = {
   onLoadedMetadata?: (duration: number) => void;
 };
 
+export interface VideoPlayerHandle {
+  seekTo: (time: number) => void;
+}
+
 // How quickly a smoothed position chases the raw detection each frame.
 // 1.0 = instant snap; 0.15 = very heavy smoothing (slow to catch up).
 const SMOOTHING_FACTOR: Record<BlurSmoothing, number> = {
@@ -26,125 +30,139 @@ const SMOOTHING_FACTOR: Record<BlurSmoothing, number> = {
   High: 0.15,
 };
 
-export default function VideoPlayer({
-  videoUrl,
-  fps,
-  detections,
-  blurredFaces = {},
-  onTimeUpdate,
-  onLoadedMetadata,
-}: VideoPlayerProps) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const currentFrame = useVideoFrame(videoRef, { fps });
+const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
+  function VideoPlayer(
+    {
+      videoUrl,
+      fps,
+      detections,
+      blurredFaces = {},
+      onTimeUpdate,
+      onLoadedMetadata,
+    },
+    ref,
+  ) {
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const currentFrame = useVideoFrame(videoRef, { fps });
 
-  // Stores the last interpolated [x, y, w, h] for each face_id.
-  // A plain ref avoids re-renders while still persisting across draw ticks.
-  const smoothedPos = useRef<Record<string, [number, number, number, number]>>(
-    {},
-  );
-  // Used to detect seeks so we can reset smoothed positions.
-  const prevFrame = useRef<number>(-1);
+    useImperativeHandle(ref, () => ({
+      seekTo(time: number) {
+        if (!videoRef.current) return;
+        videoRef.current.currentTime = time;
+      },
+    }));
 
-  // ── Sync canvas resolution to the video's native size ──────────────────
-  useEffect(() => {
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    if (!video || !canvas) return;
+    // Stores the last interpolated [x, y, w, h] for each face_id.
+    // A plain ref avoids re-renders while still persisting across draw ticks.
+    const smoothedPos = useRef<
+      Record<string, [number, number, number, number]>
+    >({});
+    // Used to detect seeks so we can reset smoothed positions.
+    const prevFrame = useRef<number>(-1);
 
-    function syncSize() {
+    // ── Sync canvas resolution to the video's native size ──────────────────
+    useEffect(() => {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
       if (!video || !canvas) return;
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-    }
 
-    video.addEventListener("loadedmetadata", syncSize);
-    if (video.readyState >= 1) syncSize();
-    return () => video.removeEventListener("loadedmetadata", syncSize);
-  }, [videoUrl]);
-
-  // ── Draw overlays every frame ───────────────────────────────────────────
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    const video = videoRef.current;
-    if (!canvas || !video) return;
-
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    if (!detections) return;
-
-    const frameData = detections.frames[currentFrame];
-    if (!frameData?.faces.length) return;
-
-    // If the frame index jumped by more than 5 (user seeked), stale smoothed
-    // positions would cause the box to slide across the screen from the old
-    // location. Reset them so they snap to the new position immediately.
-    if (Math.abs(currentFrame - prevFrame.current) > 5) {
-      smoothedPos.current = {};
-    }
-    prevFrame.current = currentFrame;
-
-    for (const face of frameData.faces) {
-      const [rawX, rawY, rawW, rawH] = face.bbox;
-      const settings = blurredFaces[face.track_id];
-
-      // ── Smoothing ──────────────────────────────────────────────────────
-      // Lerp the smoothed position toward the raw detection.
-      // Blurred faces use their stored smoothing; unblurred preview boxes
-      // always use Low so they don't jitter either.
-      const factor = SMOOTHING_FACTOR[settings?.smoothing ?? "Low"];
-      const [px, py, pw, ph] = smoothedPos.current[face.track_id] ?? [
-        rawX,
-        rawY,
-        rawW,
-        rawH,
-      ];
-
-      const sx = lerp(px, rawX, factor);
-      const sy = lerp(py, rawY, factor);
-      const sw = lerp(pw, rawW, factor);
-      const sh = lerp(ph, rawH, factor);
-      smoothedPos.current[face.track_id] = [sx, sy, sw, sh];
-
-      if (settings) {
-        // ── Padding ───────────────────────────────────────────────────────
-        // Expand the smoothed box by `padding %` of its own size on every
-        // side. BlazeFace boxes are often tight (forehead / chin clipped),
-        // so a 10-20 % pad ensures the face is fully hidden.
-        const padX = (sw * settings.padding) / 100;
-        const padY = (sh * settings.padding) / 100;
-        const bx = sx - padX;
-        const by = sy - padY;
-        const bw = sw + padX * 2;
-        const bh = sh + padY * 2;
-
-        drawBlur(ctx, video, bx, by, bw, bh, settings);
-      } else {
-        // Yellow detection preview — raw smoothed position, no padding
-        drawDetectionBox(ctx, sx, sy, sw, sh, face.track_id);
+      function syncSize() {
+        if (!video || !canvas) return;
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
       }
-    }
-  }, [currentFrame, detections, blurredFaces]);
 
-  return (
-    <div className="relative inline-block w-full">
-      <video
-        ref={videoRef}
-        src={videoUrl}
-        controls
-        className="block w-full"
-        onTimeUpdate={(e) => onTimeUpdate?.(e.currentTarget.currentTime)}
-        onLoadedMetadata={(e) => onLoadedMetadata?.(e.currentTarget.duration)}
-      />
-      <canvas
-        ref={canvasRef}
-        className="absolute top-0 left-0 h-full w-full pointer-events-none"
-      />
-    </div>
-  );
-}
+      video.addEventListener('loadedmetadata', syncSize);
+      if (video.readyState >= 1) syncSize();
+      return () => video.removeEventListener('loadedmetadata', syncSize);
+    }, [videoUrl]);
+
+    // ── Draw overlays every frame ───────────────────────────────────────────
+    useEffect(() => {
+      const canvas = canvasRef.current;
+      const video = videoRef.current;
+      if (!canvas || !video) return;
+
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (!detections) return;
+
+      const frameData = detections.frames[currentFrame];
+      if (!frameData?.faces.length) return;
+
+      // If the frame index jumped by more than 5 (user seeked), stale smoothed
+      // positions would cause the box to slide across the screen from the old
+      // location. Reset them so they snap to the new position immediately.
+      if (Math.abs(currentFrame - prevFrame.current) > 5) {
+        smoothedPos.current = {};
+      }
+      prevFrame.current = currentFrame;
+
+      for (const face of frameData.faces) {
+        const [rawX, rawY, rawW, rawH] = face.bbox;
+        const settings = blurredFaces[face.track_id];
+
+        // ── Smoothing ──────────────────────────────────────────────────────
+        // Lerp the smoothed position toward the raw detection.
+        // Blurred faces use their stored smoothing; unblurred preview boxes
+        // always use Low so they don't jitter either.
+        const factor = SMOOTHING_FACTOR[settings?.smoothing ?? 'Low'];
+        const [px, py, pw, ph] = smoothedPos.current[face.track_id] ?? [
+          rawX,
+          rawY,
+          rawW,
+          rawH,
+        ];
+
+        const sx = lerp(px, rawX, factor);
+        const sy = lerp(py, rawY, factor);
+        const sw = lerp(pw, rawW, factor);
+        const sh = lerp(ph, rawH, factor);
+        smoothedPos.current[face.track_id] = [sx, sy, sw, sh];
+
+        if (settings) {
+          // ── Padding ───────────────────────────────────────────────────────
+          // Expand the smoothed box by `padding %` of its own size on every
+          // side. BlazeFace boxes are often tight (forehead / chin clipped),
+          // so a 10-20 % pad ensures the face is fully hidden.
+          const padX = (sw * settings.padding) / 100;
+          const padY = (sh * settings.padding) / 100;
+          const bx = sx - padX;
+          const by = sy - padY;
+          const bw = sw + padX * 2;
+          const bh = sh + padY * 2;
+
+          drawBlur(ctx, video, bx, by, bw, bh, settings);
+        } else {
+          // Yellow detection preview — raw smoothed position, no padding
+          drawDetectionBox(ctx, sx, sy, sw, sh, face.track_id);
+        }
+      }
+    }, [currentFrame, detections, blurredFaces]);
+
+    return (
+      <div className="relative inline-block w-full">
+        <video
+          ref={videoRef}
+          src={videoUrl}
+          controls
+          className="block w-full"
+          onTimeUpdate={(e) => onTimeUpdate?.(e.currentTarget.currentTime)}
+          onLoadedMetadata={(e) => onLoadedMetadata?.(e.currentTarget.duration)}
+        />
+        <canvas
+          ref={canvasRef}
+          className="absolute top-0 left-0 h-full w-full pointer-events-none"
+        />
+      </div>
+    );
+  },
+);
+
+export default VideoPlayer;
 
 // ── Drawing helpers ───────────────────────────────────────────────────────────
 
@@ -160,10 +178,10 @@ function drawDetectionBox(
   h: number,
   trackId: string,
 ) {
-  ctx.strokeStyle = "#facc15";
+  ctx.strokeStyle = '#facc15';
   ctx.lineWidth = 3;
-  ctx.font = "bold 14px sans-serif";
-  ctx.fillStyle = "#facc15";
+  ctx.font = 'bold 14px sans-serif';
+  ctx.fillStyle = '#facc15';
   ctx.strokeRect(x, y, w, h);
   ctx.fillText(`Face ${trackId}`, x + 4, y - 6 > 0 ? y - 6 : y + 16);
 }
@@ -180,7 +198,7 @@ function clipToShape(
   shape: BlurShape,
 ) {
   ctx.beginPath();
-  if (shape === "Ellipse") {
+  if (shape === 'Ellipse') {
     // cx/cy = centre, rx/ry = half-dimensions, rotation = 0, full circle
     ctx.ellipse(x + w / 2, y + h / 2, w / 2, h / 2, 0, 0, Math.PI * 2);
   } else {
@@ -199,13 +217,13 @@ function drawBlur(
   settings: BlurSettings,
 ) {
   switch (settings.type) {
-    case "Gaussian":
+    case 'Gaussian':
       drawGaussian(ctx, video, x, y, w, h, settings);
       break;
-    case "Pixelate":
+    case 'Pixelate':
       drawPixelate(ctx, video, x, y, w, h, settings);
       break;
-    case "Solid mask":
+    case 'Solid mask':
       drawSolid(ctx, x, y, w, h, settings);
       break;
   }
@@ -254,10 +272,10 @@ function drawPixelate(
   const pixH = Math.max(1, Math.round(h / blockSize));
 
   // Step 1 — downsample the face region to a few pixels
-  const tmp = document.createElement("canvas");
+  const tmp = document.createElement('canvas');
   tmp.width = pixW;
   tmp.height = pixH;
-  tmp.getContext("2d")!.drawImage(video, x, y, w, h, 0, 0, pixW, pixH);
+  tmp.getContext('2d')!.drawImage(video, x, y, w, h, 0, 0, pixW, pixH);
 
   // Step 2 — upscale back with nearest-neighbour to get hard pixel blocks,
   // clipped to the chosen shape so it respects ellipse outlines.
@@ -287,7 +305,7 @@ function drawSolid(
   ctx.save();
   ctx.fillStyle = colorMap[color];
 
-  if (shape === "Ellipse") {
+  if (shape === 'Ellipse') {
     ctx.beginPath();
     ctx.ellipse(x + w / 2, y + h / 2, w / 2, h / 2, 0, 0, Math.PI * 2);
     ctx.fill();

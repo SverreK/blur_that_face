@@ -12,6 +12,7 @@ dist
 __pycache__/
 *.pyc
 .env
+venv/
 uploads/
 dist-ssr
 *.local

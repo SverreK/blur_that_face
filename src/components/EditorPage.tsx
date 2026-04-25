@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useRef, useState, useEffect } from 'react';
+import type { VideoPlayerHandle } from './VideoPlayer';
 import type { BlurSettings, DetectionData, JobMeta, JobStatus } from '../types';
 import { DEFAULT_BLUR_SETTINGS } from '../types';
 import TopBar from './EditorPageTopBar';
@@ -37,7 +38,6 @@ export default function EditorPage({
     Record<string, BlurSettings>
   >({});
 
-
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
 
@@ -51,6 +51,7 @@ export default function EditorPage({
   }, [status]);
 
   const effectiveStatus: JobStatus = exportNew ? 'detected' : status;
+  const videoRef = useRef<VideoPlayerHandle>(null);
 
   const blurredCount = Object.keys(blurredFaces).length;
   const totalFrames =
@@ -70,12 +71,14 @@ export default function EditorPage({
     }
   }
 
+  function handleSeek(time: number) {
+    videoRef.current?.seekTo(time);
+  }
+
   // Select all blurred faces for editing (preserves faces array order)
   function selectAllFaces() {
     setSelectedFaces(
-      faces
-        .filter((f) => f.track_id in blurredFaces)
-        .map((f) => f.track_id),
+      faces.filter((f) => f.track_id in blurredFaces).map((f) => f.track_id),
     );
   }
 
@@ -162,6 +165,7 @@ export default function EditorPage({
           <div className="mx-auto w-full max-w-[850px]">
             <div className="relative overflow-hidden rounded-[14px] border border-white/10 bg-black">
               <VideoPlayer
+                ref={videoRef}
                 videoUrl={`/api/jobs/${job.id}/video`}
                 fps={job.fps ?? 30}
                 detections={detections}
@@ -171,7 +175,13 @@ export default function EditorPage({
               />
             </div>
 
-            <FaceTimeline faces={faces} totalFrames={totalFrames} />
+            <FaceTimeline
+              faces={faces}
+              totalFrames={totalFrames}
+              currentTime={currentTime}
+              duration={duration}
+              onSeek={handleSeek}
+            />
           </div>
         </section>
 
