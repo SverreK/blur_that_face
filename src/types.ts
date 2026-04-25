@@ -52,7 +52,7 @@ export interface BlurSettings {
 
 export const DEFAULT_BLUR_SETTINGS: BlurSettings = {
   type: "Gaussian",
-  strength: 60,
+  strength: 80,
   color: "Neutral",
   padding: 15,
   shape: "Rectangle",

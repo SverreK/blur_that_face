@@ -13,7 +13,6 @@ interface LeftPanelProps {
   onSelectAllFaces: () => void;
   onClearSelected: () => void;
   onChangeBlurSettings: (s: BlurSettings) => void;
-  onApplyBlur: () => void;
   onResetBlur: () => void;
 }
 
@@ -27,7 +26,6 @@ export default function LeftPanel({
   onSelectAllFaces,
   onClearSelected,
   onChangeBlurSettings,
-  onApplyBlur,
   onResetBlur,
 }: LeftPanelProps) {
   const [activeTab, setActiveTab] = useState<"faces" | "blur">("faces");
@@ -75,7 +73,6 @@ export default function LeftPanel({
           selectedCount={selectedFaces.length}
           blurSettings={blurSettings}
           onChangeBlurSettings={onChangeBlurSettings}
-          onApplyBlur={onApplyBlur}
           onResetBlur={onResetBlur}
         />
       )}

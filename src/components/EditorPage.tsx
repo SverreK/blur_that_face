@@ -71,9 +71,9 @@ export default function EditorPage({
     setSelectedFaces([]);
   }
 
-  // Stamp the current blur settings onto every selected face
-  function applyBlurToSelected() {
+  useEffect(() => {
     if (selectedFaces.length === 0) return;
+
     setBlurredFaces((prev) => {
       const next = { ...prev };
       selectedFaces.forEach((id) => {
@@ -81,12 +81,11 @@ export default function EditorPage({
       });
       return next;
     });
-  }
+  }, [blurSettings, selectedFaces]);
 
   // Reset the blur form back to defaults and remove all applied blur
   function resetBlurSettings() {
     setBlurSettings(DEFAULT_BLUR_SETTINGS);
-    setBlurredFaces({});
   }
 
   return (
@@ -114,7 +113,6 @@ export default function EditorPage({
           onSelectAllFaces={selectAllFaces}
           onClearSelected={clearSelected}
           onChangeBlurSettings={setBlurSettings}
-          onApplyBlur={applyBlurToSelected}
           onResetBlur={resetBlurSettings}
         />
 
@@ -129,10 +127,6 @@ export default function EditorPage({
                 onTimeUpdate={setCurrentTime}
                 onLoadedMetadata={setDuration}
               />
-
-              <div className="pointer-events-none absolute bottom-6 left-1/2 -translate-x-1/2 rounded-[8px] bg-black/50 px-5 py-2 text-sm font-medium text-white/55 backdrop-blur-md">
-                Click a face to blur it
-              </div>
             </div>
 
             <FaceTimeline faces={faces} totalFrames={totalFrames} />

@@ -10,7 +10,6 @@ interface BlurTabProps {
   selectedCount: number;
   blurSettings: BlurSettings;
   onChangeBlurSettings: (s: BlurSettings) => void;
-  onApplyBlur: () => void;
   onResetBlur: () => void;
 }
 
@@ -18,7 +17,6 @@ export default function BlurTab({
   selectedCount,
   blurSettings,
   onChangeBlurSettings,
-  onApplyBlur,
   onResetBlur,
 }: BlurTabProps) {
   // Each helper spreads the current settings and overrides one key,
@@ -142,23 +140,14 @@ export default function BlurTab({
 
       <div className="shrink-0 border-t border-white/10 px-4 pb-4 pt-3">
         {selectedCount === 0 && (
-          <p className="mb-3 text-[13px] text-white/30">
-            Select faces first to apply
-          </p>
+          <p className="mb-3 text-[13px] text-white/30">No faces selected</p>
         )}
-        <div className="grid grid-cols-2 gap-2">
+        <div className="flex justify-center">
           <button
             onClick={onResetBlur}
-            className="h-[42px] rounded-[8px] border border-white/10 bg-transparent text-sm font-bold text-white/40 transition hover:bg-white/[0.05]"
+            className="h-[42px] w-[150px] rounded-[8px] border border-white/10 bg-transparent text-sm font-bold text-white/40 transition hover:bg-white/[0.05]"
           >
-            Reset
-          </button>
-          <button
-            onClick={onApplyBlur}
-            disabled={selectedCount === 0}
-            className="h-[42px] rounded-[8px] border border-teal-400/30 bg-teal-400/20 text-sm font-bold text-teal-300 transition hover:bg-teal-400/25 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/[0.04] disabled:text-white/25"
-          >
-            Apply ({selectedCount})
+            Set default
           </button>
         </div>
       </div>
