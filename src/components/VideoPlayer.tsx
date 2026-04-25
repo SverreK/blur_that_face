@@ -249,7 +249,7 @@ function drawPixelate(
   { strength, shape }: BlurSettings,
 ) {
   // Map 0-100 % → 4-32 px block size. Larger blocks = more pixelated.
-  const blockSize = Math.max(4, Math.round(4 + (strength / 100) * 28));
+  const blockSize = Math.max(4, Math.round(4 + (strength / 100) * 60));
   const pixW = Math.max(1, Math.round(w / blockSize));
   const pixH = Math.max(1, Math.round(h / blockSize));
 

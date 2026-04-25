@@ -1,5 +1,5 @@
-import { useState } from "react";
-import type { BlurSettings, DetectionData, JobMeta } from "../types";
+import { useState, useEffect } from "react";
+import type { BlurSettings, DetectionData, JobMeta, JobStatus } from "../types";
 import { DEFAULT_BLUR_SETTINGS } from "../types";
 import TopBar from "./EditorPageTopBar";
 import LeftPanel from "./EditorPageLeftPanel";
@@ -10,9 +10,18 @@ import VideoPlayer from "./VideoPlayer";
 interface EditorPageProps {
   job: JobMeta;
   detections: DetectionData | null;
+  onExport: (jobId: string, blurredFaces: Record<string, BlurSettings>) => void;
+  status: JobStatus;
+  progressPercentage: number | null;
 }
 
-export default function EditorPage({ job, detections }: EditorPageProps) {
+export default function EditorPage({
+  job,
+  detections,
+  onExport,
+  status,
+  progressPercentage,
+}: EditorPageProps) {
   const faces = job.faces ?? [];
 
   // Which faces the user has ticked in the faces tab
@@ -30,6 +39,17 @@ export default function EditorPage({ job, detections }: EditorPageProps) {
 
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+
+  // Local override so "Export new" can show the Export button again after a
+  // completed export, without requiring a backend status reset.
+  const [exportNew, setExportNew] = useState(false);
+
+  // Once rendering finishes, clear the override so "done" state shows correctly.
+  useEffect(() => {
+    if (status === "done") setExportNew(false);
+  }, [status]);
+
+  const effectiveStatus: JobStatus = exportNew ? "detected" : status;
 
   const blurredCount = Object.keys(blurredFaces).length;
   const totalFrames =
@@ -73,9 +93,14 @@ export default function EditorPage({ job, detections }: EditorPageProps) {
     <main className="min-h-screen bg-[#0b0911] text-white pt-[60px]">
       <TopBar
         job={job}
-        blurredCount={blurredCount}
+        blurredCount={Object.keys(blurredFaces).length}
+        blurredFaces={blurredFaces}
         currentTime={currentTime}
         duration={duration}
+        status={effectiveStatus}
+        progressPercentage={progressPercentage}
+        onExport={() => onExport(job.id, blurredFaces)}
+        onExportNew={() => setExportNew(true)}
       />
 
       <div className="grid h-[calc(100vh-95px)] grid-cols-[333px_minmax(0,1fr)_280px] overflow-hidden">

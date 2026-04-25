@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { JobMeta, JobStatus, DetectionData } from "../types";
+import type { JobMeta, JobStatus, DetectionData, BlurSettings } from "../types";
 
 const POLL_INTERVAL_MS = 1500;
 
@@ -34,7 +34,10 @@ export function useJobPolling() {
         if (meta.status === "detected") {
           stopPolling();
           fetchDetections(jobId);
-        } else if (["done", "error"].includes(meta.status)) {
+        } else if (meta.status === "done") {
+          stopPolling();
+          window.open(`/api/jobs/${jobId}/output`, "_blank");
+        } else if (meta.status === "error") {
           stopPolling();
         }
       } catch (error) {
@@ -127,6 +130,30 @@ export function useJobPolling() {
     setStatus("idle");
   }
 
+  async function exportVideo(
+    jobId: string,
+    blurredFaces: Record<string, BlurSettings>,
+  ) {
+    setStatus("rendering");
+
+    const res = await fetch(`/api/jobs/${jobId}/export`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ blurred_faces: blurredFaces }),
+    });
+
+    if (!res.ok) {
+      const { detail } = await res.json();
+      setStatus("error");
+      setJob((prev) =>
+        prev ? { ...prev, status: "error", error: detail } : null,
+      );
+      return;
+    }
+
+    startPolling(jobId);
+  }
+
   return {
     status,
     job,
@@ -135,5 +162,6 @@ export function useJobPolling() {
     progressPercentage,
     uploadFile,
     resetJob,
+    exportVideo,
   };
 }

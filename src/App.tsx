@@ -4,6 +4,7 @@ import ProcessingPage from "./components/ProcessingPage";
 import EditorPage from "./components/EditorPage";
 import JobStatusCard from "./components/JobStatusCard";
 import { useJobPolling } from "./hooks/useJobPolling";
+import { useEffect } from "react";
 
 export default function App() {
   const {
@@ -14,12 +15,22 @@ export default function App() {
     progressPercentage,
     uploadFile,
     resetJob,
+    exportVideo,
   } = useJobPolling();
 
   const isHome = !job;
   const isDetecting =
     job && ["uploading", "uploaded", "detecting"].includes(status);
-  const isEditor = job && ["detected", "done"].includes(status);
+  const isEditor = job && ["detected", "rendering", "done"].includes(status);
+
+  useEffect(() => {
+    if (status === "done" && job) {
+      const link = document.createElement("a");
+      link.href = `/api/jobs/${job.id}/output`;
+      link.download = `blurred_${job.filename}`;
+      link.click();
+    }
+  }, [status, job]);
 
   return (
     <>
@@ -41,7 +52,15 @@ export default function App() {
         />
       )}
 
-      {isEditor && job && <EditorPage job={job} detections={detections} />}
+      {isEditor && job && (
+        <EditorPage
+          job={job}
+          detections={detections}
+          onExport={exportVideo}
+          status={status}
+          progressPercentage={progressPercentage}
+        />
+      )}
 
       {status === "error" && job && (
         <JobStatusCard
