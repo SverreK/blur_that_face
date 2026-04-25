@@ -16,19 +16,29 @@ export function useVideoFrame(
     const video = videoRef.current;
     if (!video) return;
 
-    function updateFrame() {
+    let handle: number;
+
+    function onFrame(
+      _now: DOMHighResTimeStamp,
+      metadata: VideoFrameCallbackMetadata,
+    ) {
+      setCurrentFrame(Math.floor(metadata.mediaTime * fps));
+      handle = video!.requestVideoFrameCallback(onFrame);
+    }
+
+    // Start the callback loop
+    handle = video.requestVideoFrameCallback(onFrame);
+
+    // Still listen for seeks so the frame updates when paused and scrubbing
+    function onSeek() {
       if (!video) return;
       setCurrentFrame(Math.floor(video.currentTime * fps));
     }
-
-    video.addEventListener("timeupdate", updateFrame);
-    video.addEventListener("seeked", updateFrame);
-    video.addEventListener("loadedmetadata", updateFrame);
+    video.addEventListener("seeked", onSeek);
 
     return () => {
-      video.removeEventListener("timeupdate", updateFrame);
-      video.removeEventListener("seeked", updateFrame);
-      video.removeEventListener("loadedmetadata", updateFrame);
+      video.cancelVideoFrameCallback(handle);
+      video.removeEventListener("seeked", onSeek);
     };
   }, [videoRef, fps]);
 

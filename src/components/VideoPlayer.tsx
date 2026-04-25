@@ -1,12 +1,18 @@
 import { useRef, useEffect } from "react";
 import { useVideoFrame } from "../hooks/useVideoFrame";
-import type { BlurColor, BlurSettings, BlurShape, BlurSmoothing, DetectionData } from "../types";
+import type {
+  BlurColor,
+  BlurSettings,
+  BlurShape,
+  BlurSmoothing,
+  DetectionData,
+} from "../types";
 
 type VideoPlayerProps = {
   videoUrl: string;
   fps: number;
   detections: DetectionData | null;
-  blurredFaces?: Record<number, BlurSettings>;
+  blurredFaces?: Record<string, BlurSettings>;
   onTimeUpdate?: (time: number) => void;
   onLoadedMetadata?: (duration: number) => void;
 };
@@ -14,10 +20,10 @@ type VideoPlayerProps = {
 // How quickly a smoothed position chases the raw detection each frame.
 // 1.0 = instant snap; 0.15 = very heavy smoothing (slow to catch up).
 const SMOOTHING_FACTOR: Record<BlurSmoothing, number> = {
-  None:   1.0,
-  Low:    0.6,
+  None: 1.0,
+  Low: 0.6,
   Medium: 0.35,
-  High:   0.15,
+  High: 0.15,
 };
 
 export default function VideoPlayer({
@@ -28,25 +34,27 @@ export default function VideoPlayer({
   onTimeUpdate,
   onLoadedMetadata,
 }: VideoPlayerProps) {
-  const videoRef  = useRef<HTMLVideoElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const currentFrame = useVideoFrame(videoRef, { fps });
 
   // Stores the last interpolated [x, y, w, h] for each face_id.
   // A plain ref avoids re-renders while still persisting across draw ticks.
-  const smoothedPos = useRef<Record<number, [number, number, number, number]>>({});
+  const smoothedPos = useRef<Record<string, [number, number, number, number]>>(
+    {},
+  );
   // Used to detect seeks so we can reset smoothed positions.
   const prevFrame = useRef<number>(-1);
 
   // ── Sync canvas resolution to the video's native size ──────────────────
   useEffect(() => {
-    const video  = videoRef.current;
+    const video = videoRef.current;
     const canvas = canvasRef.current;
     if (!video || !canvas) return;
 
     function syncSize() {
       if (!video || !canvas) return;
-      canvas.width  = video.videoWidth;
+      canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
     }
 
@@ -58,7 +66,7 @@ export default function VideoPlayer({
   // ── Draw overlays every frame ───────────────────────────────────────────
   useEffect(() => {
     const canvas = canvasRef.current;
-    const video  = videoRef.current;
+    const video = videoRef.current;
     if (!canvas || !video) return;
 
     const ctx = canvas.getContext("2d");
@@ -80,19 +88,25 @@ export default function VideoPlayer({
 
     for (const face of frameData.faces) {
       const [rawX, rawY, rawW, rawH] = face.bbox;
-      const settings = blurredFaces[face.face_id];
+      const settings = blurredFaces[face.track_id];
 
       // ── Smoothing ──────────────────────────────────────────────────────
       // Lerp the smoothed position toward the raw detection.
       // Blurred faces use their stored smoothing; unblurred preview boxes
       // always use Low so they don't jitter either.
       const factor = SMOOTHING_FACTOR[settings?.smoothing ?? "Low"];
-      const [px, py, pw, ph] = smoothedPos.current[face.face_id] ?? [rawX, rawY, rawW, rawH];
+      const [px, py, pw, ph] = smoothedPos.current[face.track_id] ?? [
+        rawX,
+        rawY,
+        rawW,
+        rawH,
+      ];
+
       const sx = lerp(px, rawX, factor);
       const sy = lerp(py, rawY, factor);
       const sw = lerp(pw, rawW, factor);
       const sh = lerp(ph, rawH, factor);
-      smoothedPos.current[face.face_id] = [sx, sy, sw, sh];
+      smoothedPos.current[face.track_id] = [sx, sy, sw, sh];
 
       if (settings) {
         // ── Padding ───────────────────────────────────────────────────────
@@ -109,7 +123,7 @@ export default function VideoPlayer({
         drawBlur(ctx, video, bx, by, bw, bh, settings);
       } else {
         // Yellow detection preview — raw smoothed position, no padding
-        drawDetectionBox(ctx, sx, sy, sw, sh, face.face_id);
+        drawDetectionBox(ctx, sx, sy, sw, sh, face.track_id);
       }
     }
   }, [currentFrame, detections, blurredFaces]);
@@ -140,15 +154,18 @@ function lerp(a: number, b: number, t: number): number {
 
 function drawDetectionBox(
   ctx: CanvasRenderingContext2D,
-  x: number, y: number, w: number, h: number,
-  faceId: number,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  trackId: string,
 ) {
   ctx.strokeStyle = "#facc15";
-  ctx.lineWidth   = 3;
-  ctx.font        = "bold 14px sans-serif";
-  ctx.fillStyle   = "#facc15";
+  ctx.lineWidth = 3;
+  ctx.font = "bold 14px sans-serif";
+  ctx.fillStyle = "#facc15";
   ctx.strokeRect(x, y, w, h);
-  ctx.fillText(`Face ${faceId}`, x + 4, y - 6 > 0 ? y - 6 : y + 16);
+  ctx.fillText(`Face ${trackId}`, x + 4, y - 6 > 0 ? y - 6 : y + 16);
 }
 
 // Clip the canvas context to either a rectangle or an ellipse.
@@ -156,7 +173,10 @@ function drawDetectionBox(
 // within the (padded, possibly elliptical) box boundary.
 function clipToShape(
   ctx: CanvasRenderingContext2D,
-  x: number, y: number, w: number, h: number,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
   shape: BlurShape,
 ) {
   ctx.beginPath();
@@ -172,24 +192,36 @@ function clipToShape(
 function drawBlur(
   ctx: CanvasRenderingContext2D,
   video: HTMLVideoElement,
-  x: number, y: number, w: number, h: number,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
   settings: BlurSettings,
 ) {
   switch (settings.type) {
-    case "Gaussian":   drawGaussian(ctx, video, x, y, w, h, settings); break;
-    case "Pixelate":   drawPixelate(ctx, video, x, y, w, h, settings); break;
-    case "Solid mask": drawSolid(ctx,           x, y, w, h, settings); break;
+    case "Gaussian":
+      drawGaussian(ctx, video, x, y, w, h, settings);
+      break;
+    case "Pixelate":
+      drawPixelate(ctx, video, x, y, w, h, settings);
+      break;
+    case "Solid mask":
+      drawSolid(ctx, x, y, w, h, settings);
+      break;
   }
 }
 
 function drawGaussian(
   ctx: CanvasRenderingContext2D,
   video: HTMLVideoElement,
-  x: number, y: number, w: number, h: number,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
   { strength, shape }: BlurSettings,
 ) {
   // Map 0-100 % → 2-30 px blur radius.
-  const blurPx  = Math.round(2 + (strength / 100) * 28);
+  const blurPx = Math.round(2 + (strength / 100) * 28);
   // Draw a padded region from the video so the kernel has real edge pixels
   // to sample from — without this the blur darkens at the clip boundary.
   const overlap = blurPx * 2;
@@ -200,7 +232,7 @@ function drawGaussian(
 
   const sx = Math.max(0, x - overlap);
   const sy = Math.max(0, y - overlap);
-  const sw = Math.min(video.videoWidth  - sx, w + overlap * 2);
+  const sw = Math.min(video.videoWidth - sx, w + overlap * 2);
   const sh = Math.min(video.videoHeight - sy, h + overlap * 2);
   ctx.drawImage(video, sx, sy, sw, sh, sx, sy, sw, sh);
 
@@ -210,7 +242,10 @@ function drawGaussian(
 function drawPixelate(
   ctx: CanvasRenderingContext2D,
   video: HTMLVideoElement,
-  x: number, y: number, w: number, h: number,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
   { strength, shape }: BlurSettings,
 ) {
   // Map 0-100 % → 4-32 px block size. Larger blocks = more pixelated.
@@ -219,9 +254,9 @@ function drawPixelate(
   const pixH = Math.max(1, Math.round(h / blockSize));
 
   // Step 1 — downsample the face region to a few pixels
-  const tmp    = document.createElement("canvas");
-  tmp.width    = pixW;
-  tmp.height   = pixH;
+  const tmp = document.createElement("canvas");
+  tmp.width = pixW;
+  tmp.height = pixH;
   tmp.getContext("2d")!.drawImage(video, x, y, w, h, 0, 0, pixW, pixH);
 
   // Step 2 — upscale back with nearest-neighbour to get hard pixel blocks,
@@ -235,15 +270,18 @@ function drawPixelate(
 
 function drawSolid(
   ctx: CanvasRenderingContext2D,
-  x: number, y: number, w: number, h: number,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
   { color, strength, shape }: BlurSettings,
 ) {
   // Strength maps 0-100 % → opacity 0.4-1.0 so even at 0 there's a visible mark.
   const opacity = 0.4 + (strength / 100) * 0.6;
   const colorMap: Record<BlurColor, string> = {
     Neutral: `rgba(0,   0,   0,   ${opacity})`,
-    Warm:    `rgba(60,  20,  0,   ${opacity})`,
-    Cool:    `rgba(0,   20,  60,  ${opacity})`,
+    Warm: `rgba(60,  20,  0,   ${opacity})`,
+    Cool: `rgba(0,   20,  60,  ${opacity})`,
   };
 
   ctx.save();
