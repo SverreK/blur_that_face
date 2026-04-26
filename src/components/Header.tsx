@@ -12,7 +12,7 @@ export default function Header({ mode, onReset }: HeaderProps) {
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-[40px] h-[60px] backdrop-blur-sm transition-all duration-300 ${
+      className={`fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 sm:px-[40px] h-[60px] backdrop-blur-sm transition-all duration-300 ${
         solid ? 'bg-[rgba(244,243,239,0.92)]' : 'bg-transparent'
       }`}
     >
@@ -42,7 +42,7 @@ export default function Header({ mode, onReset }: HeaderProps) {
         <ul className="flex items-center gap-5 text-[13px]">
           {mode === 'landing' ? (
             <>
-              <li>
+              <li className="hidden sm:block">
                 <a
                   onClick={(e) => {
                     e.preventDefault();

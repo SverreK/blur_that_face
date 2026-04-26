@@ -16,7 +16,7 @@ export default function GetStarted({
   return (
     <section
       id="get-started"
-      className="min-h-screen bg-[rgb(237,236,234)] border-t border-[rgb(237,236,234)] py-[80px] px-[48px] pb-[96px]"
+      className="min-h-screen bg-[rgb(237,236,234)] border-t border-[rgb(237,236,234)] py-12 sm:py-[80px] px-6 sm:px-[48px] pb-16 sm:pb-[96px]"
     >
       <div className="max-w-[760px] mx-auto">
         <h2 className="mb-[8px] font-space font-bold text-black text-[clamp(24px,3.5vw,36px)] tracking-tight">

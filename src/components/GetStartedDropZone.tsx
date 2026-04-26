@@ -56,7 +56,7 @@ export default function UploadDropZone({
       onDrop={handleDrop}
       className={[
         "relative max-w-[760px] mx-auto",
-        "border border-dashed rounded-[16px] px-[36px] py-[56px]",
+        "border border-dashed rounded-[16px] px-4 sm:px-[36px] py-10 sm:py-[56px]",
         "text-center overflow-hidden transition-all duration-200",
         "bg-white/50",
         disabled

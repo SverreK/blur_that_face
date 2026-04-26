@@ -37,7 +37,7 @@ export default function LeftPanel({
   const [activeTab, setActiveTab] = useState<'faces' | 'blur'>('faces');
 
   return (
-    <aside className="flex flex-col overflow-hidden border-r border-white/10 bg-[#0d0b14]">
+    <aside className="flex-1 flex flex-col overflow-hidden border-r border-white/10 bg-[#0d0b14]">
       <div className="shrink-0 px-4 pb-3 pt-4">
         <div className="mb-4 flex rounded-[10px] border border-white/10 bg-white/[0.03] p-1">
           <button

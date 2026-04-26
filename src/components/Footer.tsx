@@ -1,6 +1,6 @@
 export default function Footer() {
   return (
-    <footer className="bg-[#0e0c15] text-white px-[48px] py-[28px] flex items-center justify-between">
+    <footer className="bg-[#0e0c15] text-white px-4 sm:px-[48px] py-[28px] flex flex-wrap items-center justify-between gap-y-2">
       <div className="flex items-center gap-2">
         <img src="/blind.png" className="w-[22px] h-[22px]" />
         <span className="font-space font-bold text-[13px]">Blur That Guy</span>

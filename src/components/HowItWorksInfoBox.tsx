@@ -7,7 +7,7 @@ export default function InfoBox({
   description,
 }: InfoBoxProps) {
   return (
-    <div className="flex-1 items-start border-2px rounded-2xl w-[260px] pt-[28px] pb-[32px] px-[24px] bg-transparent hover:bg-[rgba(13,148,146,0.05)] transition-colors duration-250">
+    <div className="flex-1 items-start border-2px rounded-2xl w-full pt-[28px] pb-[32px] px-[24px] bg-transparent hover:bg-[rgba(13,148,136,0.05)] transition-colors duration-250">
       <div className="mb-[25px] w-5 h-5">{icon}</div>
       <div className="mb-[8px] font-space text-[10px] font-semibold tracking-[0.12em] uppercase text-[rgba(0,0,0,0.4)]">
         {number}

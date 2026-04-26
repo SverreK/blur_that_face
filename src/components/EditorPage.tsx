@@ -133,22 +133,24 @@ export default function EditorPage({
         onExportNew={() => setExportNew(true)}
       />
 
-      <div className="grid h-[calc(100vh-95px)] grid-cols-[333px_minmax(0,1fr)_280px] overflow-hidden">
-        <LeftPanel
-          jobId={job.id}
-          faces={faces}
-          selectedFaces={selectedFaces}
-          blurredFaces={blurredFaces}
-          blurSettings={blurSettings}
-          onToggleFace={toggleFace}
-          onSelectAllFaces={selectAllFaces}
-          onClearSelected={clearSelected}
-          onChangeBlurSettings={setBlurSettings}
-          onResetBlur={resetBlurSettings}
-          onRemoveBlur={removeBlurFromFace}
-          onBlurAll={blurAllFaces}
-          onResetAll={resetAllFaces}
-        />
+      <div className="grid grid-cols-1 xl:grid-cols-[333px_minmax(0,1fr)_280px] xl:h-[calc(100vh-95px)] xl:overflow-hidden">
+        <div className="flex flex-col border-b border-white/10 xl:border-b-0">
+          <LeftPanel
+            jobId={job.id}
+            faces={faces}
+            selectedFaces={selectedFaces}
+            blurredFaces={blurredFaces}
+            blurSettings={blurSettings}
+            onToggleFace={toggleFace}
+            onSelectAllFaces={selectAllFaces}
+            onClearSelected={clearSelected}
+            onChangeBlurSettings={setBlurSettings}
+            onResetBlur={resetBlurSettings}
+            onRemoveBlur={removeBlurFromFace}
+            onBlurAll={blurAllFaces}
+            onResetAll={resetAllFaces}
+          />
+        </div>
 
         <section className="sidebar-scroll overflow-y-auto bg-[#100e17] p-4">
           <div className="mx-auto w-full max-w-[850px]">
@@ -174,7 +176,9 @@ export default function EditorPage({
           </div>
         </section>
 
-        <RightPanel job={job} blurredCount={blurredCount} duration={duration} />
+        <div className="hidden xl:flex xl:flex-col">
+          <RightPanel job={job} blurredCount={blurredCount} duration={duration} />
+        </div>
       </div>
     </main>
   );

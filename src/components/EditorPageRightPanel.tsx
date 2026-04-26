@@ -22,7 +22,7 @@ export default function RightPanel({
     duration && duration > 0 ? formatDuration(duration) : 'Unknown';
 
   return (
-    <aside className="sidebar-scroll overflow-y-auto border-l border-white/10 bg-[#0d0b14] p-4">
+    <aside className="flex-1 sidebar-scroll overflow-y-auto border-l border-white/10 bg-[#0d0b14] p-4">
       <p className="mb-5 text-[13px] font-bold uppercase tracking-[0.18em] text-white/35">
         Video Properties
       </p>

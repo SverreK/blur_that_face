@@ -32,21 +32,21 @@ export default function HowItWorks() {
   return (
     <section
       id="how-it-works"
-      className="min-h-screen bg-[#f4f3ef] px-[96px] py-[65px]"
+      className="min-h-screen bg-[#f4f3ef] px-6 sm:px-12 lg:px-[96px] py-[65px]"
     >
       <div className="max-w-[1100px] mx-auto">
-        <h1 className="mb-[46px] font-space text-[40px] text-black font-bold tracking-tight">
+        <h1 className="mb-6 sm:mb-[46px] font-space text-2xl sm:text-[40px] text-black font-bold tracking-tight">
           How it works
         </h1>
 
         <motion.div
-          className="flex items-start"
+          className="flex flex-wrap lg:flex-nowrap items-start gap-6 lg:gap-0"
           variants={containerVariants}
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, amount: 0.35 }}
         >
-          <motion.div variants={itemVariants} className="flex-1 min-w-0">
+          <motion.div variants={itemVariants} className="w-full sm:w-[calc(50%-12px)] lg:flex-1 lg:w-auto lg:min-w-0">
             <InfoBox
               icon={
                 <svg viewBox="0 0 384 512" className="w-7 h-7">
@@ -61,12 +61,12 @@ export default function HowItWorks() {
 
           <motion.div
             variants={itemVariants}
-            className="px-[6px] pt-[40px] flex-shrink-0 text-black/20"
+            className="hidden lg:block px-[6px] pt-[40px] flex-shrink-0 text-black/20"
           >
             <Arrow />
           </motion.div>
 
-          <motion.div variants={itemVariants} className="flex-1 min-w-0">
+          <motion.div variants={itemVariants} className="w-full sm:w-[calc(50%-12px)] lg:flex-1 lg:w-auto lg:min-w-0">
             <InfoBox
               icon={
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
@@ -82,12 +82,12 @@ export default function HowItWorks() {
 
           <motion.div
             variants={itemVariants}
-            className="px-[6px] pt-[40px] flex-shrink-0 text-black/20"
+            className="hidden lg:block px-[6px] pt-[40px] flex-shrink-0 text-black/20"
           >
             <Arrow />
           </motion.div>
 
-          <motion.div variants={itemVariants} className="flex-1 min-w-0">
+          <motion.div variants={itemVariants} className="w-full sm:w-[calc(50%-12px)] lg:flex-1 lg:w-auto lg:min-w-0">
             <InfoBox
               icon={
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512">
@@ -103,12 +103,12 @@ export default function HowItWorks() {
 
           <motion.div
             variants={itemVariants}
-            className="px-[6px] pt-[40px] flex-shrink-0 text-black/20"
+            className="hidden lg:block px-[6px] pt-[40px] flex-shrink-0 text-black/20"
           >
             <Arrow />
           </motion.div>
 
-          <motion.div variants={itemVariants} className="flex-1 min-w-0">
+          <motion.div variants={itemVariants} className="w-full sm:w-[calc(50%-12px)] lg:flex-1 lg:w-auto lg:min-w-0">
             <InfoBox
               icon={
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512">

@@ -5,9 +5,9 @@ export default function Hero() {
   return (
     <section
       id="hero"
-      className="min-h-screen flex flex-col justify-center items-center bg-[#0e0c15] text-white"
+      className="min-h-screen flex flex-col justify-center items-center bg-[#0e0c15] text-white px-4"
     >
-      <h1 className="text-7xl font-space font-extrabold flex gap-3">
+      <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-space font-extrabold flex flex-wrap justify-center gap-3">
         <motion.span
           initial={{ y: 15, opacity: 0 }}
           animate={{
