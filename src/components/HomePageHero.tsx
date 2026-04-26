@@ -1,4 +1,5 @@
-import { motion } from "motion/react";
+import { motion } from 'framer-motion';
+import { smoothScrollTo } from '../utils/smoothScroll';
 
 export default function Hero() {
   return (
@@ -12,16 +13,16 @@ export default function Hero() {
           animate={{
             y: 0,
             opacity: 1,
-            filter: ["blur(0px)", "blur(0px)", "blur(6px)"],
+            filter: ['blur(0px)', 'blur(0px)', 'blur(6px)'],
           }}
           transition={{
             duration: 0.6,
             delay: 0,
-            ease: "easeOut",
+            ease: 'easeOut',
             filter: {
               delay: 0.2,
               duration: 1.8,
-              ease: "easeInOut",
+              ease: 'easeInOut',
             },
           }}
         >
@@ -34,7 +35,7 @@ export default function Hero() {
           transition={{
             duration: 0.6,
             delay: 0.15,
-            ease: "easeOut",
+            ease: 'easeOut',
           }}
         >
           That
@@ -46,7 +47,7 @@ export default function Hero() {
           transition={{
             duration: 0.6,
             delay: 0.3,
-            ease: "easeOut",
+            ease: 'easeOut',
           }}
           className="text-slate-400"
         >
@@ -56,7 +57,7 @@ export default function Hero() {
       <motion.div
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.6, delay: 0.12, ease: "easeInOut" }}
+        transition={{ duration: 0.6, delay: 0.12, ease: 'easeInOut' }}
         className="flex flex-col items-center text-mono text-sm text-[rgba(255,255,255,0.6)]"
       >
         <p className="mt-4">
@@ -74,10 +75,12 @@ export default function Hero() {
         <motion.a
           whileHover={{ scale: 1.05, y: -2 }}
           whileTap={{ scale: 0.9, y: 1 }}
-          transition={{ type: "spring" }}
-          href="#get-started"
-          className="text-sm text-[14px] font-space font-medium tracking-tighter rounded-md pt-[10px] pb-[10px] pl-[26px] pr-[26px] bg-[#475569]  transition-all duration-200 ease-out
-            hover:bg-teal-600 cursor-pointer"
+          transition={{ type: 'spring' }}
+          onClick={(e) => {
+            e.preventDefault();
+            smoothScrollTo('get-started');
+          }}
+          className="text-sm text-[14px] font-space font-medium tracking-tighter rounded-md pt-[10px] pb-[10px] pl-[26px] pr-[26px] bg-[#475569] transition-all duration-200 ease-out hover:bg-teal-600 cursor-pointer"
         >
           Start blurring
         </motion.a>
