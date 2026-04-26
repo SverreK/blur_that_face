@@ -45,14 +45,5 @@ COPY backend/main.py backend/detector.py backend/tracker.py ./
 # Frontend build artefacts from stage 1
 COPY --from=frontend-build /frontend/dist /app/dist
 
-# Thin wrapper: mounts the built frontend at "/" without modifying main.py.
-# FastAPI routes (registered first via `from main import app`) take priority
-# over the StaticFiles catch-all, so /api/* routes are unaffected.
-RUN printf '%s\n' \
-  'from main import app' \
-  'from fastapi.staticfiles import StaticFiles' \
-  'app.mount("/assets", StaticFiles(directory="/app/dist/assets"), name="assets")' \
-  > /app/serve.py
-
 EXPOSE 8000
-CMD ["uvicorn", "serve:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

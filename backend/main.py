@@ -39,6 +39,7 @@ from pathlib import Path
 from fastapi import BackgroundTasks, FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from detector import run_detection
@@ -49,6 +50,7 @@ from detector import run_detection
 
 UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR", "/tmp/btf/uploads"))
 JOBS_DIR   = Path(os.getenv("JOBS_DIR",   "/tmp/btf/jobs"))
+DIST_DIR = Path(__file__).resolve().parent / "dist"
 
 FFMPEG_PATH = shutil.which("ffmpeg") or "ffmpeg"
 
@@ -527,3 +529,9 @@ def output_video(job_id: str):
     if not output_path.exists():
         raise HTTPException(status_code=404, detail="Output file not found")
     return FileResponse(output_path, media_type="video/mp4")
+
+@app.get("/", include_in_schema=False)
+async def serve_frontend():
+    return FileResponse(DIST_DIR / "index.html")
+
+app.mount("/", StaticFiles(directory=DIST_DIR, html=True), name="frontend")
