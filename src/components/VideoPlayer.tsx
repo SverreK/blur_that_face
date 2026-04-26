@@ -1,4 +1,4 @@
-import { useRef, useEffect, useImperativeHandle, forwardRef } from 'react';
+import { useRef, useEffect, useImperativeHandle, forwardRef, useState } from 'react';
 import { useVideoFrame } from '../hooks/useVideoFrame';
 import type {
   BlurColor,
@@ -44,7 +44,13 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
   ) {
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const wrapperRef = useRef<HTMLDivElement>(null);
     const currentFrame = useVideoFrame(videoRef, { fps });
+
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [isMuted, setIsMuted] = useState(false);
+    const [volume, setVolume] = useState(1);
+    const [isFullscreen, setIsFullscreen] = useState(false);
 
     useImperativeHandle(ref, () => ({
       seekTo(time: number) {
@@ -60,6 +66,38 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
     >({});
     // Used to detect seeks so we can reset smoothed positions.
     const prevFrame = useRef<number>(-1);
+
+    // ── Sync play/pause and volume state with the video element ───────────────
+    useEffect(() => {
+      const video = videoRef.current;
+      if (!video) return;
+
+      const onPlay = () => setIsPlaying(true);
+      const onPause = () => setIsPlaying(false);
+      const onVolumeChange = () => {
+        setIsMuted(video.muted);
+        setVolume(video.volume);
+      };
+
+      video.addEventListener('play', onPlay);
+      video.addEventListener('pause', onPause);
+      video.addEventListener('volumechange', onVolumeChange);
+      return () => {
+        video.removeEventListener('play', onPlay);
+        video.removeEventListener('pause', onPause);
+        video.removeEventListener('volumechange', onVolumeChange);
+      };
+    }, []);
+
+    // ── Fullscreen: track state and keep canvas in the fullscreen tree ─────────
+    useEffect(() => {
+      function handleFullscreenChange() {
+        setIsFullscreen(!!document.fullscreenElement);
+      }
+
+      document.addEventListener('fullscreenchange', handleFullscreenChange);
+      return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    }, []);
 
     // ── Sync canvas resolution to the video's native size ──────────────────
     useEffect(() => {
@@ -143,26 +181,156 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
       }
     }, [currentFrame, detections, blurredFaces]);
 
+    // ── Control handlers ───────────────────────────────────────────────────
+    function togglePlay() {
+      const video = videoRef.current;
+      if (!video) return;
+      if (video.paused) video.play();
+      else video.pause();
+    }
+
+    function toggleMute() {
+      const video = videoRef.current;
+      if (!video) return;
+      video.muted = !video.muted;
+    }
+
+    function handleVolumeChange(e: React.ChangeEvent<HTMLInputElement>) {
+      const video = videoRef.current;
+      if (!video) return;
+      const v = Number(e.target.value);
+      video.volume = v;
+      video.muted = v === 0;
+    }
+
+    function toggleFullscreen() {
+      const wrapper = wrapperRef.current;
+      if (!wrapper) return;
+      if (!document.fullscreenElement) {
+        wrapper.requestFullscreen();
+      } else {
+        document.exitFullscreen();
+      }
+    }
+
     return (
-      <div className="relative inline-block w-full">
+      <div ref={wrapperRef} className="relative inline-block w-full bg-black">
         <video
           ref={videoRef}
           src={videoUrl}
-          controls
           className="block w-full"
           onTimeUpdate={(e) => onTimeUpdate?.(e.currentTarget.currentTime)}
           onLoadedMetadata={(e) => onLoadedMetadata?.(e.currentTarget.duration)}
+          onClick={togglePlay}
         />
         <canvas
           ref={canvasRef}
-          className="absolute top-0 left-0 h-full w-full pointer-events-none"
+          className="pointer-events-none absolute inset-0 z-10 h-full w-full"
         />
+
+        {/* ── Custom control bar ───────────────────────────────────────────── */}
+        <div className="pointer-events-auto absolute bottom-0 left-0 right-0 z-20 flex items-center justify-between bg-gradient-to-t from-black/70 to-transparent px-3 py-2">
+          {/* Left: play/pause + volume */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={togglePlay}
+              className="text-white/80 transition hover:text-white"
+              aria-label={isPlaying ? 'Pause' : 'Play'}
+            >
+              {isPlaying ? <IconPause /> : <IconPlay />}
+            </button>
+
+            <div className="group flex items-center gap-2">
+              <button
+                onClick={toggleMute}
+                className="text-white/80 transition hover:text-white"
+                aria-label={isMuted ? 'Unmute' : 'Mute'}
+              >
+                {isMuted || volume === 0 ? <IconVolumeMute /> : <IconVolume />}
+              </button>
+
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.05"
+                value={isMuted ? 0 : volume}
+                onChange={handleVolumeChange}
+                className="h-1 w-0 cursor-pointer overflow-hidden accent-white transition-all duration-200 group-hover:w-16"
+                aria-label="Volume"
+              />
+            </div>
+          </div>
+
+          {/* Right: fullscreen */}
+          <button
+            onClick={toggleFullscreen}
+            className="text-white/80 transition hover:text-white"
+            aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+          >
+            {isFullscreen ? <IconCompress /> : <IconExpand />}
+          </button>
+        </div>
       </div>
     );
   },
 );
 
 export default VideoPlayer;
+
+// ── SVG icons ─────────────────────────────────────────────────────────────────
+
+function IconPlay() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+      <polygon points="5,3 17,10 5,17" />
+    </svg>
+  );
+}
+
+function IconPause() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+      <rect x="4" y="3" width="4" height="14" rx="1" />
+      <rect x="12" y="3" width="4" height="14" rx="1" />
+    </svg>
+  );
+}
+
+function IconVolume() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+      <path d="M3 7.5h3l4-3v11l-4-3H3z" />
+      <path d="M13.5 6.5a5 5 0 0 1 0 7" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function IconVolumeMute() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+      <path d="M3 7.5h3l4-3v11l-4-3H3z" />
+      <line x1="13" y1="7" x2="18" y2="13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <line x1="18" y1="7" x2="13" y2="13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function IconExpand() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+      <path d="M3 8V3h5M17 8V3h-5M3 12v5h5M17 12v5h-5" />
+    </svg>
+  );
+}
+
+function IconCompress() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+      <path d="M8 3v5H3M12 3v5h5M8 17v-5H3M12 17v-5h5" />
+    </svg>
+  );
+}
 
 // ── Drawing helpers ───────────────────────────────────────────────────────────
 
