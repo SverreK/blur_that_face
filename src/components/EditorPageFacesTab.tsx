@@ -68,7 +68,7 @@ export default function FacesTab({
         </div>
       </div>
 
-      <div className="sidebar-scroll flex-1 overflow-y-auto px-4">
+      <div className="sidebar-scroll min-h-0 flex-1 overflow-y-auto px-4">
         <div className="flex flex-col gap-2 pb-4">
           {faces.map((face, index) => {
             const selected = selectedFaces.includes(face.track_id);

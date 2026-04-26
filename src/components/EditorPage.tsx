@@ -1,12 +1,12 @@
-import { useRef, useState, useEffect } from 'react';
-import type { VideoPlayerHandle } from './EditorPageVideoPlayer';
-import type { BlurSettings, DetectionData, JobMeta, JobStatus } from '../types';
-import { DEFAULT_BLUR_SETTINGS } from '../types';
-import TopBar from './EditorPageTopBar';
-import LeftPanel from './EditorPageLeftPanel';
-import RightPanel from './EditorPageRightPanel';
-import FaceTimeline from './EditorPageFacesTimeline';
-import VideoPlayer from './EditorPageVideoPlayer';
+import { useRef, useState, useEffect } from "react";
+import type { VideoPlayerHandle } from "./EditorPageVideoPlayer";
+import type { BlurSettings, DetectionData, JobMeta, JobStatus } from "../types";
+import { DEFAULT_BLUR_SETTINGS } from "../types";
+import TopBar from "./EditorPageTopBar";
+import LeftPanel from "./EditorPageLeftPanel";
+import RightPanel from "./EditorPageRightPanel";
+import FaceTimeline from "./EditorPageFacesTimeline";
+import VideoPlayer from "./EditorPageVideoPlayer";
 
 interface EditorPageProps {
   job: JobMeta;
@@ -41,10 +41,10 @@ export default function EditorPage({
   const [exportNew, setExportNew] = useState(false);
 
   useEffect(() => {
-    if (status === 'done') setExportNew(false);
+    if (status === "done") setExportNew(false);
   }, [status]);
 
-  const effectiveStatus: JobStatus = exportNew ? 'detected' : status;
+  const effectiveStatus: JobStatus = exportNew ? "detected" : status;
   const videoRef = useRef<VideoPlayerHandle>(null);
 
   const blurredCount = Object.keys(blurredFaces).length;
@@ -133,24 +133,22 @@ export default function EditorPage({
         onExportNew={() => setExportNew(true)}
       />
 
-      <div className="grid grid-cols-1 xl:grid-cols-[333px_minmax(0,1fr)_280px] xl:h-[calc(100vh-95px)] xl:overflow-hidden">
-        <div className="flex flex-col border-b border-white/10 xl:border-b-0">
-          <LeftPanel
-            jobId={job.id}
-            faces={faces}
-            selectedFaces={selectedFaces}
-            blurredFaces={blurredFaces}
-            blurSettings={blurSettings}
-            onToggleFace={toggleFace}
-            onSelectAllFaces={selectAllFaces}
-            onClearSelected={clearSelected}
-            onChangeBlurSettings={setBlurSettings}
-            onResetBlur={resetBlurSettings}
-            onRemoveBlur={removeBlurFromFace}
-            onBlurAll={blurAllFaces}
-            onResetAll={resetAllFaces}
-          />
-        </div>
+      <div className="grid h-[calc(100vh-95px)] grid-cols-[333px_minmax(0,1fr)_280px] grid-rows-[calc(100vh-95px)] overflow-hidden">
+        <LeftPanel
+          jobId={job.id}
+          faces={faces}
+          selectedFaces={selectedFaces}
+          blurredFaces={blurredFaces}
+          blurSettings={blurSettings}
+          onToggleFace={toggleFace}
+          onSelectAllFaces={selectAllFaces}
+          onClearSelected={clearSelected}
+          onChangeBlurSettings={setBlurSettings}
+          onResetBlur={resetBlurSettings}
+          onRemoveBlur={removeBlurFromFace}
+          onBlurAll={blurAllFaces}
+          onResetAll={resetAllFaces}
+        />
 
         <section className="sidebar-scroll overflow-y-auto bg-[#100e17] p-4">
           <div className="mx-auto w-full max-w-[850px]">
@@ -176,9 +174,7 @@ export default function EditorPage({
           </div>
         </section>
 
-        <div className="hidden xl:flex xl:flex-col">
-          <RightPanel job={job} blurredCount={blurredCount} duration={duration} />
-        </div>
+        <RightPanel job={job} blurredCount={blurredCount} duration={duration} />
       </div>
     </main>
   );
