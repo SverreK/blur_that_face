@@ -534,4 +534,5 @@ def output_video(job_id: str):
 async def serve_frontend():
     return FileResponse(DIST_DIR / "index.html")
 
-app.mount("/", StaticFiles(directory=DIST_DIR, html=True), name="frontend")
+if DIST_DIR.exists():
+    app.mount("/", StaticFiles(directory=DIST_DIR, html=True), name="frontend")
