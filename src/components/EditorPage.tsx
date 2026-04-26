@@ -1,12 +1,12 @@
 import { useRef, useState, useEffect } from 'react';
-import type { VideoPlayerHandle } from './VideoPlayer';
+import type { VideoPlayerHandle } from './EditorPageVideoPlayer';
 import type { BlurSettings, DetectionData, JobMeta, JobStatus } from '../types';
 import { DEFAULT_BLUR_SETTINGS } from '../types';
 import TopBar from './EditorPageTopBar';
 import LeftPanel from './EditorPageLeftPanel';
 import RightPanel from './EditorPageRightPanel';
 import FaceTimeline from './EditorPageFacesTimeline';
-import VideoPlayer from './VideoPlayer';
+import VideoPlayer from './EditorPageVideoPlayer';
 
 interface EditorPageProps {
   job: JobMeta;
@@ -25,15 +25,10 @@ export default function EditorPage({
 }: EditorPageProps) {
   const faces = job.faces ?? [];
 
-  // Which faces the user has ticked in the faces tab
   const [selectedFaces, setSelectedFaces] = useState<string[]>([]);
-
-  // Blur form — shared between BlurTab (edits it) and the apply action (reads it)
   const [blurSettings, setBlurSettings] = useState<BlurSettings>(
     DEFAULT_BLUR_SETTINGS,
   );
-
-  // track_id → the settings that were applied to it via "Apply selected"
   const [blurredFaces, setBlurredFaces] = useState<
     Record<string, BlurSettings>
   >({});
@@ -45,7 +40,6 @@ export default function EditorPage({
   // completed export, without requiring a backend status reset.
   const [exportNew, setExportNew] = useState(false);
 
-  // Once rendering finishes, clear the override so "done" state shows correctly.
   useEffect(() => {
     if (status === 'done') setExportNew(false);
   }, [status]);
@@ -59,10 +53,8 @@ export default function EditorPage({
 
   function toggleFace(trackId: string) {
     if (!(trackId in blurredFaces)) {
-      // Not yet blurred — blur it immediately with the current settings
       setBlurredFaces((prev) => ({ ...prev, [trackId]: { ...blurSettings } }));
     } else {
-      // Already blurred — toggle whether it's selected for editing
       setSelectedFaces((prev) =>
         prev.includes(trackId)
           ? prev.filter((id) => id !== trackId)
@@ -75,7 +67,6 @@ export default function EditorPage({
     videoRef.current?.seekTo(time);
   }
 
-  // Select all blurred faces for editing (preserves faces array order)
   function selectAllFaces() {
     setSelectedFaces(
       faces.filter((f) => f.track_id in blurredFaces).map((f) => f.track_id),
@@ -136,8 +127,6 @@ export default function EditorPage({
         job={job}
         blurredCount={Object.keys(blurredFaces).length}
         blurredFaces={blurredFaces}
-        currentTime={currentTime}
-        duration={duration}
         status={effectiveStatus}
         progressPercentage={progressPercentage}
         onExport={() => onExport(job.id, blurredFaces)}

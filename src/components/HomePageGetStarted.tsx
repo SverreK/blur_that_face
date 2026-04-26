@@ -1,6 +1,6 @@
-import UploadDropZone from "./UploadDropZone";
-import { STATUS_LABEL } from "../types";
-import type { JobStatus } from "../types";
+import UploadDropZone from './GetStartedDropZone';
+import { STATUS_LABEL } from '../types';
+import type { JobStatus } from '../types';
 
 interface GetStartedProps {
   onFileSelected: (file: File) => void;

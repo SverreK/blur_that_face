@@ -1,10 +1,10 @@
-import Loader from "./Loader";
-import type { JobStatus } from "../types";
+import Loader from './ProcessingPageLoader';
+import type { JobStatus } from '../types';
 
 const PROCESSING_MESSAGES: Partial<Record<JobStatus, string>> = {
-  uploading: "Uploading your video…",
-  uploaded: "Preparing for detection…",
-  detecting: "Scanning frames for faces…",
+  uploading: 'Uploading your video…',
+  uploaded: 'Preparing for detection…',
+  detecting: 'Scanning frames for faces…',
 };
 
 interface ProcessingPageProps {
@@ -18,7 +18,7 @@ export default function ProcessingPage({
   progressPercentage,
   filename,
 }: ProcessingPageProps) {
-  const message = PROCESSING_MESSAGES[status] ?? "Processing your video…";
+  const message = PROCESSING_MESSAGES[status] ?? 'Processing your video…';
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-6 pt-[80px]">
@@ -36,7 +36,7 @@ export default function ProcessingPage({
 
         <Loader />
 
-        {status === "detecting" && progressPercentage !== null && (
+        {status === 'detecting' && progressPercentage !== null && (
           <div className="mt-2">
             <span className="text-lg font-light text-[#0e0c15] tracking-tight">
               {progressPercentage}%

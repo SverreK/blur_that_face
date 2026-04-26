@@ -18,12 +18,12 @@ RUN npm run build
 
 
 # ── Stage 2: production image ─────────────────────────────────────────────────
-FROM python:3.13-slim
+FROM python:3.11-slim
 
 # System packages: ffmpeg for audio muxing, wget for model download
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      ffmpeg \
-      wget \Get-Command ffmpeg -ErrorAction SilentlyContinue
+    ffmpeg \
+    wget \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -55,4 +55,4 @@ RUN printf '%s\n' \
   > /app/serve.py
 
 EXPOSE 8000
-CMD ["uvicorn", "serve:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

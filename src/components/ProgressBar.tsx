@@ -12,7 +12,7 @@ export default function ProgressBar({
       <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
         <div
           className="h-full bg-blue-500 transition-all duration-300"
-          style={{ width: value !== null ? `${value}%` : "100%" }}
+          style={{ width: value !== null ? `${value}%` : '100%' }}
         />
       </div>
       {showLabel && value !== null && (

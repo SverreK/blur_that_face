@@ -1,5 +1,12 @@
-import { useRef, useEffect, useImperativeHandle, forwardRef, useState } from 'react';
+import {
+  useRef,
+  useEffect,
+  useImperativeHandle,
+  forwardRef,
+  useState,
+} from 'react';
 import { useVideoFrame } from '../hooks/useVideoFrame';
+
 import type {
   BlurColor,
   BlurSettings,
@@ -59,7 +66,6 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
       },
     }));
 
-    // Stores the last interpolated [x, y, w, h] for each face_id.
     // A plain ref avoids re-renders while still persisting across draw ticks.
     const smoothedPos = useRef<
       Record<string, [number, number, number, number]>
@@ -67,7 +73,6 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
     // Used to detect seeks so we can reset smoothed positions.
     const prevFrame = useRef<number>(-1);
 
-    // ── Sync play/pause and volume state with the video element ───────────────
     useEffect(() => {
       const video = videoRef.current;
       if (!video) return;
@@ -89,17 +94,19 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
       };
     }, []);
 
-    // ── Fullscreen: track state and keep canvas in the fullscreen tree ─────────
     useEffect(() => {
       function handleFullscreenChange() {
         setIsFullscreen(!!document.fullscreenElement);
       }
 
       document.addEventListener('fullscreenchange', handleFullscreenChange);
-      return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      return () =>
+        document.removeEventListener(
+          'fullscreenchange',
+          handleFullscreenChange,
+        );
     }, []);
 
-    // ── Sync canvas resolution to the video's native size ──────────────────
     useEffect(() => {
       const video = videoRef.current;
       const canvas = canvasRef.current;
@@ -116,7 +123,6 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
       return () => video.removeEventListener('loadedmetadata', syncSize);
     }, [videoUrl]);
 
-    // ── Draw overlays every frame ───────────────────────────────────────────
     useEffect(() => {
       const canvas = canvasRef.current;
       const video = videoRef.current;
@@ -143,10 +149,7 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
         const [rawX, rawY, rawW, rawH] = face.bbox;
         const settings = blurredFaces[face.track_id];
 
-        // ── Smoothing ──────────────────────────────────────────────────────
-        // Lerp the smoothed position toward the raw detection.
-        // Blurred faces use their stored smoothing; unblurred preview boxes
-        // always use Low so they don't jitter either.
+        // Unblurred preview boxes use Low so they don't jitter.
         const factor = SMOOTHING_FACTOR[settings?.smoothing ?? 'Low'];
         const [px, py, pw, ph] = smoothedPos.current[face.track_id] ?? [
           rawX,
@@ -162,10 +165,7 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
         smoothedPos.current[face.track_id] = [sx, sy, sw, sh];
 
         if (settings) {
-          // ── Padding ───────────────────────────────────────────────────────
-          // Expand the smoothed box by `padding %` of its own size on every
-          // side. BlazeFace boxes are often tight (forehead / chin clipped),
-          // so a 10-20 % pad ensures the face is fully hidden.
+          // BlazeFace boxes are often tight (forehead / chin clipped).
           const padX = (sw * settings.padding) / 100;
           const padY = (sh * settings.padding) / 100;
           const bx = sx - padX;
@@ -175,13 +175,11 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
 
           drawBlur(ctx, video, bx, by, bw, bh, settings);
         } else {
-          // Yellow detection preview — raw smoothed position, no padding
           drawDetectionBox(ctx, sx, sy, sw, sh, face.track_id);
         }
       }
     }, [currentFrame, detections, blurredFaces]);
 
-    // ── Control handlers ───────────────────────────────────────────────────
     function togglePlay() {
       const video = videoRef.current;
       if (!video) return;
@@ -228,9 +226,7 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
           className="pointer-events-none absolute inset-0 z-10 h-full w-full"
         />
 
-        {/* ── Custom control bar ───────────────────────────────────────────── */}
         <div className="pointer-events-auto absolute bottom-0 left-0 right-0 z-20 flex items-center justify-between bg-gradient-to-t from-black/70 to-transparent px-3 py-2">
-          {/* Left: play/pause + volume */}
           <div className="flex items-center gap-2">
             <button
               onClick={togglePlay}
@@ -262,7 +258,6 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
             </div>
           </div>
 
-          {/* Right: fullscreen */}
           <button
             onClick={toggleFullscreen}
             className="text-white/80 transition hover:text-white"
@@ -301,7 +296,13 @@ function IconVolume() {
   return (
     <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
       <path d="M3 7.5h3l4-3v11l-4-3H3z" />
-      <path d="M13.5 6.5a5 5 0 0 1 0 7" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+      <path
+        d="M13.5 6.5a5 5 0 0 1 0 7"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        fill="none"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
@@ -310,15 +311,39 @@ function IconVolumeMute() {
   return (
     <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
       <path d="M3 7.5h3l4-3v11l-4-3H3z" />
-      <line x1="13" y1="7" x2="18" y2="13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-      <line x1="18" y1="7" x2="13" y2="13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <line
+        x1="13"
+        y1="7"
+        x2="18"
+        y2="13"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+      <line
+        x1="18"
+        y1="7"
+        x2="13"
+        y2="13"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
 
 function IconExpand() {
   return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+    >
       <path d="M3 8V3h5M17 8V3h-5M3 12v5h5M17 12v5h-5" />
     </svg>
   );
@@ -326,7 +351,15 @@ function IconExpand() {
 
 function IconCompress() {
   return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+    >
       <path d="M8 3v5H3M12 3v5h5M8 17v-5H3M12 17v-5h5" />
     </svg>
   );
@@ -354,9 +387,6 @@ function drawDetectionBox(
   ctx.fillText(`Face ${trackId}`, x + 4, y - 6 > 0 ? y - 6 : y + 16);
 }
 
-// Clip the canvas context to either a rectangle or an ellipse.
-// All three blur types call this before drawing so the effect stays
-// within the (padded, possibly elliptical) box boundary.
 function clipToShape(
   ctx: CanvasRenderingContext2D,
   x: number,
@@ -367,7 +397,6 @@ function clipToShape(
 ) {
   ctx.beginPath();
   if (shape === 'Ellipse') {
-    // cx/cy = centre, rx/ry = half-dimensions, rotation = 0, full circle
     ctx.ellipse(x + w / 2, y + h / 2, w / 2, h / 2, 0, 0, Math.PI * 2);
   } else {
     ctx.rect(x, y, w, h);
@@ -434,19 +463,16 @@ function drawPixelate(
   h: number,
   { strength, shape }: BlurSettings,
 ) {
-  // Map 0-100 % → 4-32 px block size. Larger blocks = more pixelated.
+  // Map 0-100 % → 4-64 px block size. Larger blocks = more pixelated.
   const blockSize = Math.max(4, Math.round(4 + (strength / 100) * 60));
   const pixW = Math.max(1, Math.round(w / blockSize));
   const pixH = Math.max(1, Math.round(h / blockSize));
 
-  // Step 1 — downsample the face region to a few pixels
   const tmp = document.createElement('canvas');
   tmp.width = pixW;
   tmp.height = pixH;
   tmp.getContext('2d')!.drawImage(video, x, y, w, h, 0, 0, pixW, pixH);
 
-  // Step 2 — upscale back with nearest-neighbour to get hard pixel blocks,
-  // clipped to the chosen shape so it respects ellipse outlines.
   ctx.save();
   clipToShape(ctx, x, y, w, h, shape);
   ctx.imageSmoothingEnabled = false;

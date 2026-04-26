@@ -53,8 +53,8 @@ export default function JobStatusCard({
           </span>
           <ul className="text-xs text-gray-500 list-disc list-inside">
             {job.faces.map((f) => (
-              <li key={f.face_id}>
-                Face {f.face_id} — frames {f.first_frame}–{f.last_frame}
+              <li key={f.track_id}>
+                Face {f.track_id} — frames {f.first_frame}–{f.last_frame}
               </li>
             ))}
           </ul>

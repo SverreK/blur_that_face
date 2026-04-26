@@ -170,8 +170,6 @@ def _merge_within_shots(
             gap = b["first_frame"] - a["last_frame"]
 
             if not (0 < gap <= max_gap):
-                if 0 < gap <= 100:  # only log near-misses, not distant tracks
-                    print(f"  SKIP merge {a_id}→{b_id}: gap={gap} > {max_gap}")
                 continue
             
             # Never merge across a shot cut
@@ -180,12 +178,10 @@ def _merge_within_shots(
                 for cut_frame in shot_cuts
             )
             if cut_between:
-                print(f"  SKIP merge {a_id}→{b_id}: cut between frames {a['last_frame']}–{b['first_frame']}")
                 continue
 
             dist = _centroid_dist(a["last_bbox"], b["first_bbox"])
             if dist > max_dist:
-                print(f"  SKIP merge {a_id}→{b_id}: dist={dist:.0f} > {max_dist}")
                 continue
 
             a_w, a_h = a["last_bbox"][2], a["last_bbox"][3]
@@ -196,13 +192,9 @@ def _merge_within_shots(
             ratio_w = b_w / a_w
             ratio_h = b_h / a_h
             if not (size_ratio_min <= ratio_w <= size_ratio_max):
-                print(f"  SKIP merge {a_id}→{b_id}: ratio_w={ratio_w:.2f} out of range")
                 continue
             if not (size_ratio_min <= ratio_h <= size_ratio_max):
-                print(f"  SKIP merge {a_id}→{b_id}: ratio_h={ratio_h:.2f} out of range")
                 continue
-
-            print(f"  MERGE candidate {a_id}→{b_id}: gap={gap}, dist={dist:.0f}, ratio_w={ratio_w:.2f}, ratio_h={ratio_h:.2f}")
 
             score = gap + dist * 0.01
             if score < best_score:
@@ -231,7 +223,6 @@ def _merge_within_shots(
 
 def run_tracking(raw: dict, video_path: str | Path) -> dict:
     shot_cuts = _find_shot_cuts(video_path)
-    print(f"Shot cuts detected at frames: {sorted(shot_cuts)}")
 
     next_num: int = 1
     active: list[dict] = []
@@ -330,10 +321,6 @@ def run_tracking(raw: dict, video_path: str | Path) -> dict:
         for face in fd["faces"]:
             tid = face["track_id"]
             track_lengths[tid] = track_lengths.get(tid, 0) + 1
-
-    for tid, length in sorted(track_lengths.items(), key=lambda x: x[1], reverse=True):
-        if length >= MIN_TRACK_LENGTH:
-            print(f"  Track {tid}: {length} frames")
 
     filtered_frames = []
     for fd in result_frames:

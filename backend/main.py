@@ -13,9 +13,7 @@ Detection background task
   _run_detection(job_id)
     → sets status = "detecting"
     → calls detector.run_detection(), which reads the video with OpenCV
-      and returns per-frame face bounding boxes
-    → assigns a stable integer face_id to every unique face track (naïve
-      nearest-neighbour for now; a proper tracker comes in the next step)
+      and returns per-frame face bounding boxes with stable track_ids
     → sets status = "detected", writes face summary into meta.json
 
 Client polling
@@ -23,9 +21,9 @@ Client polling
   GET /api/jobs/{id}  →  meta.json as JSON
     status values: uploaded | detecting | detected | rendering | done | error
 
-Later steps (stubs for now)
-----------------------------
-  POST /api/jobs/{id}/render  →  produce blurred output video
+Export
+------
+  POST /api/jobs/{id}/export  →  render blurred output video in background
   GET  /api/jobs/{id}/output  →  stream finished video
 """
 
@@ -52,7 +50,7 @@ from detector import run_detection
 UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR", "/tmp/btf/uploads"))
 JOBS_DIR   = Path(os.getenv("JOBS_DIR",   "/tmp/btf/jobs"))
 
-FFMPEG_PATH = shutil.which("ffmpeg") or r"C:\Users\skthu\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1-full_build\bin\ffmpeg.exe"
+FFMPEG_PATH = shutil.which("ffmpeg") or "ffmpeg"
 
 ALLOWED_EXTENSIONS = {".mp4", ".webm", ".mov"}
 
@@ -102,7 +100,7 @@ def _run_detection(job_id: str) -> None:
 
     1. Marks job as 'detecting'.
     2. Runs the MediaPipe detector on the saved video.
-    3. Assigns stable face_ids across frames.
+    3. Assigns stable track_ids across frames via tracker.py.
     4. Writes a compact face summary into meta.json and the full results
        into detections.json.
     5. Marks job as 'detected' (or 'error' on failure).
@@ -218,8 +216,6 @@ def get_face_thumbnail(job_id: str, track_id: str):
     if not cap.isOpened():
         raise HTTPException(status_code=500, detail="Could not open video")
 
-    # CAP_PROP_POS_FRAMES seeks to the given 0-based frame index before the
-    # next cap.read(), so we get exactly the frame the face was first seen on.
     cap.set(cv2.CAP_PROP_POS_FRAMES, first_frame)
     ok, frame = cap.read()
     cap.release()
@@ -307,7 +303,7 @@ def get_job(job_id: str):
     return _read_meta(job_id)
 
 
-# --- Render blurred video (stub) -------------------------------------------
+# --- Render blurred video ---------------------------------------------------
 
 class RenderRequest(BaseModel):
     track_id: str
@@ -343,12 +339,6 @@ class BlurSettingsModel(BaseModel):
 class ExportRequest(BaseModel):
     blurred_faces: dict[str, BlurSettingsModel]
 
-
-_COLOR_TINT = {
-    "Neutral": (128, 128, 128),
-    "Warm":    (100, 130, 200),  # BGR
-    "Cool":    (200, 130, 100),
-}
 
 _SMOOTHING_SIGMA = {"None": 0, "Low": 3, "Medium": 7, "High": 15}
 
@@ -396,7 +386,6 @@ def _apply_blur_region(frame: np.ndarray, bbox: list, settings: BlurSettingsMode
         alpha = 0.4 + strength * 0.6
         processed = cv2.addWeighted(solid, alpha, roi, 1 - alpha, 0)
 
-    # Edge smoothing feather
     smooth_sigma = _SMOOTHING_SIGMA.get(settings.smoothing, 0)
     if smooth_sigma > 0:
         mask = np.zeros((rh, rw), dtype=np.float32)
@@ -470,7 +459,6 @@ def _run_export(job_id: str, blurred_faces: dict[str, BlurSettingsModel]) -> Non
         cap.release()
         writer.release()
         
-        # Copy audio from original using ffmpeg
         result = subprocess.run(
             [
                 FFMPEG_PATH, "-y",
@@ -493,7 +481,6 @@ def _run_export(job_id: str, blurred_faces: dict[str, BlurSettingsModel]) -> Non
 
         if result.returncode != 0 and not final_out.exists():
             # ffmpeg failed and produced no output — fall back to video-only file
-            import shutil
             shutil.copy(str(raw_out if raw_out.exists() else raw_out), str(final_out))
 
         meta = _read_meta(job_id)

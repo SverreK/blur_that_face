@@ -1,8 +1,8 @@
-import Hero from "./Hero";
-import HowItWorks from "./HowItWorks";
-import GetStarted from "./GetStarted";
-import Footer from "./Footer";
-import type { JobStatus } from "../types";
+import Hero from './HomePageHero';
+import HowItWorks from './HomePageHowItWorks';
+import GetStarted from './HomePageGetStarted';
+import Footer from './Footer';
+import type { JobStatus } from '../types';
 
 interface HomePageProps {
   onFileSelected: (file: File) => void;

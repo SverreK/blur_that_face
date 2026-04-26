@@ -115,4 +115,3 @@ if __name__ == "__main__":
     video = sys.argv[1] if len(sys.argv) > 1 else "video.mp4"
     out   = sys.argv[2] if len(sys.argv) > 2 else "detections.json"
     run_detection(video, out)
-    print(f"Done. Results written to {out}")
