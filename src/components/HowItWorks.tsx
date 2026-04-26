@@ -1,7 +1,34 @@
+import { motion, type Variants } from "framer-motion";
 import InfoBox from "./InfoBox";
 import Arrow from "./Arrow";
 
 export default function HowItWorks() {
+  const containerVariants: Variants = {
+    hidden: {},
+    visible: {
+      transition: {
+        staggerChildren: 0.08,
+      },
+    },
+  };
+
+  const itemVariants: Variants = {
+    hidden: {
+      opacity: 0,
+      y: 28,
+      scale: 0.96,
+    },
+    visible: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: {
+        duration: 0.45,
+        ease: [0.22, 1, 0.36, 1],
+      },
+    },
+  };
+
   return (
     <section
       id="how-it-works"
@@ -12,8 +39,14 @@ export default function HowItWorks() {
           How it works
         </h1>
 
-        <div className="flex items-start">
-          <div className="flex-1 min-w-0">
+        <motion.div
+          className="flex items-start"
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.35 }}
+        >
+          <motion.div variants={itemVariants} className="flex-1 min-w-0">
             <InfoBox
               icon={
                 <svg viewBox="0 0 384 512" className="w-7 h-7">
@@ -22,15 +55,18 @@ export default function HowItWorks() {
               }
               number="01"
               title="Drop your video"
-              description="Drag & drop any MP4, MOV or AVI file. Everything stays on your device — nothing leaves your machine."
+              description="Drag & drop any MP4, MOV file. Everything stays on your device — nothing leaves your machine."
             />
-          </div>
+          </motion.div>
 
-          <div className="px-[6px] pt-[40px] flex-shrink-0 text-black/20">
+          <motion.div
+            variants={itemVariants}
+            className="px-[6px] pt-[40px] flex-shrink-0 text-black/20"
+          >
             <Arrow />
-          </div>
+          </motion.div>
 
-          <div className="flex-1 min-w-0">
+          <motion.div variants={itemVariants} className="flex-1 min-w-0">
             <InfoBox
               icon={
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
@@ -40,15 +76,18 @@ export default function HowItWorks() {
               }
               number="02"
               title="AI detects faces"
-              description="Google's BlazeFace model runs directly in your browser via MediaPipe — a fast, lightweight detector that requires no GPU server."
+              description="Runs locally on your machine via MediaPipe — a fast, lightweight detector that requires no GPU server."
             />
-          </div>
+          </motion.div>
 
-          <div className="px-[6px] pt-[40px] flex-shrink-0 text-black/20">
+          <motion.div
+            variants={itemVariants}
+            className="px-[6px] pt-[40px] flex-shrink-0 text-black/20"
+          >
             <Arrow />
-          </div>
+          </motion.div>
 
-          <div className="flex-1 min-w-0">
+          <motion.div variants={itemVariants} className="flex-1 min-w-0">
             <InfoBox
               icon={
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512">
@@ -60,13 +99,16 @@ export default function HowItWorks() {
               title="Click to blur"
               description="Pick which faces to blur. Adjust intensity per person. Leave the others untouched — you stay in full control."
             />
-          </div>
+          </motion.div>
 
-          <div className="px-[6px] pt-[40px] flex-shrink-0 text-black/20">
+          <motion.div
+            variants={itemVariants}
+            className="px-[6px] pt-[40px] flex-shrink-0 text-black/20"
+          >
             <Arrow />
-          </div>
+          </motion.div>
 
-          <div className="flex-1 min-w-0">
+          <motion.div variants={itemVariants} className="flex-1 min-w-0">
             <InfoBox
               icon={
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512">
@@ -78,8 +120,8 @@ export default function HowItWorks() {
               title="Export"
               description="Render and download your video. Same quality, same length — just the right faces blurred out."
             />
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       </div>
     </section>
   );

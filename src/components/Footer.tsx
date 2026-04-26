@@ -7,7 +7,7 @@ export default function Footer() {
       </div>
 
       <div className="text-[11px] text-white/30">
-        Powered by Google BlazeFace · 100% local · open source
+        Made by Sverre Kristian Thune
       </div>
     </footer>
   );

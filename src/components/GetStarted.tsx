@@ -20,7 +20,7 @@ export default function GetStarted({
     >
       <div className="max-w-[760px] mx-auto">
         <h2 className="mb-[8px] font-space font-bold text-black text-[clamp(24px,3.5vw,36px)] tracking-tight">
-          Get Started
+          Drop your video here to get started!
         </h2>
         <p className="text-[14px] text-black/50 mb-[36px] font-light">
           MP4, MOV or AVI · up to 4K · processed entirely on your device
