@@ -169,7 +169,7 @@ blur_that_face/
 All tools are open source. The system runs fully offline with no external service dependencies.
 
 - **Frontend:** React, TypeScript, Vite, Tailwind CSS, Framer Motion
-- **Backend:** FastAPI, Python 3.12+, Uvicorn
+- **Backend:** FastAPI, Python 3.11, Uvicorn
 - **Detection:** MediaPipe Tasks API (BlazeFace short range, float16)
 - **Tracking:** Custom IoU tracker with centroid fallback and shot change detection
 - **Video processing:** OpenCV (headless), ffmpeg
