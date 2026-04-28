@@ -95,13 +95,15 @@ export default function EditorPage({
     setSelectedFaces([]);
   }
 
-  // When blur settings change, push the new values to every face currently
-  // selected for editing. Fires only on blurSettings changes, not on selection changes.
+  // When blur settings change, push the new values to selected faces.
+  // If no faces are selected, apply to all blurred faces (global setting).
+  // Fires only on blurSettings changes, not on selection changes.
   useEffect(() => {
-    if (selectedFaces.length === 0) return;
     setBlurredFaces((prev) => {
+      const ids = selectedFaces.length > 0 ? selectedFaces : Object.keys(prev);
+      if (ids.length === 0) return prev;
       const next = { ...prev };
-      selectedFaces.forEach((id) => {
+      ids.forEach((id) => {
         if (id in next) next[id] = { ...blurSettings };
       });
       return next;
