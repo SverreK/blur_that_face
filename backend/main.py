@@ -304,29 +304,6 @@ async def upload(
 def get_job(job_id: str):
     return _read_meta(job_id)
 
-
-# --- Render blurred video ---------------------------------------------------
-
-class RenderRequest(BaseModel):
-    track_id: str
-
-
-@app.post("/api/jobs/{job_id}/render", status_code=202)
-def render(job_id: str, body: RenderRequest):
-    meta = _read_meta(job_id)
-    if meta["status"] != "detected":
-        raise HTTPException(
-            status_code=409,
-            detail=f"Render requires status 'detected', got '{meta['status']}'",
-        )
-
-    meta["status"]           = "rendering"
-    meta["selected_face_id"] = body.track_id
-    _write_meta(job_id, meta)
-
-    return {"job_id": job_id, "status": "rendering"}
-
-
 # --- Export blurred video ---------------------------------------------------
 
 class BlurSettingsModel(BaseModel):
